@@ -1,0 +1,39 @@
+#!/bin/bash                                                                                    
+
+if [ -z "$1" ];then
+  echo "Please supply a name for the directory to hold the execuatables"
+  exit
+fi
+
+if [ -f $1 ]; then
+  echo "File $1 exist"
+  exit
+fi
+
+echo Running Spark Tests
+./$1/spark_tests
+echo Running Address Tests
+./$1/address_tests
+echo Running Aead Tests
+./$1/spark_aead_tests
+echo Challenge Bpplus Tests
+./$1/spark_bpplus_tests
+echo Running Coin Tests
+./$1/spark_coin_tests
+echo Running Chaum Tests
+./$1/spark_chaum_tests
+echo Running Encrypt Tests
+./$1/spark_encrypt_tests
+echo Running f4grumble Tests
+./$1/spark_f4grumble_tests
+echo Running Schnorr Tests
+./$1/spark_schnoor_tests
+echo Running Grootle Tests
+./$1/spark_grootle_tests
+echo Running Mint Transaction Tests
+./$1/spark_mint_transaction_tests
+echo Running Spend Transaction Tests
+./$1/spark_spend_transaction_tests
+echo Running Transcript Tests
+./$1/spark_transcript_tests
+

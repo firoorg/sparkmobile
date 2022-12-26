@@ -1,0 +1,45 @@
+#!/bin/bash                                                                                                                                    
+if [ -z "$1" ]; then
+  echo "Please supply a name for the directory to hold the execuatables"
+  exit
+fi
+if [ -f $1 ]; then
+  echo "File $1 exist"
+  exit
+fi
+if [ ! -d $1 ]; then
+  cd "secp256k1" && ./autogen.sh                                                                                                                                                                        
+  ./configure --enable-experimental --enable-module-ecdh --with-bignum=no --enable-endomorphism
+  make -j4
+  cd ..
+  mkdir $1 
+fi
+
+echo Building Spark Tests
+g++ tests/spark_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_tests
+echo Building Address Tests
+g++ tests/address_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/address_tests
+echo Building Spark Coin Tests
+g++ tests/coin_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_coin_tests
+echo Building Spark Aead Tests
+g++ tests/aead_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_aead_tests
+echo Building Spark Bpplus Tests
+g++ tests/bpplus_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_bpplus_tests
+echo Building Spark Chaum Tests
+g++ tests/chaum_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_chaum_tests
+echo Building Spark Encrypt Tests
+g++ tests/encrypt_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_encrypt_tests
+echo Building Spark f4grumble Tests
+g++ tests/f4grumble_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_f4grumble_tests
+echo Building Spark Grootle Tests
+g++ tests/grootle_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_grootle_tests
+echo Building Spark Mint Transaction Tests
+g++ tests/mint_transaction_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_mint_transaction_tests
+echo Building Spark Schnoor Tests
+g++ tests/schnorr_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_schnoor_tests
+echo Building Spark Spend Transaction Tests
+g++ tests/spend_transaction_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_spend_transaction_tests
+echo Building Spark Transcript Tests
+g++ tests/transcript_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_transcript_tests
+
+
