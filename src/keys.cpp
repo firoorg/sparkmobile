@@ -39,6 +39,37 @@ SpendKey::SpendKey(const Params* params, const Scalar& r_) {
     this->s2.memberFromSeed(&result[0]);
 }
 
+SpendKey::SpendKey(const Params* params, const std::vector<unsigned char>& serialized_r) {
+    if (serialized_r.size() != Scalar::memoryRequired())
+        return;
+
+    Scalar r_;
+    r_.deserialize(serialized_r.data());
+    this->r = r_;
+    std::vector<unsigned char> data;
+    data.resize(32);
+    r.serialize(data.data());
+    std::vector<unsigned char> result(CSHA256().OUTPUT_SIZE);
+
+    CHash256 hash256;
+    std::string prefix1 = "s1_generation";
+    hash256.Write(reinterpret_cast<const unsigned char*>(prefix1.c_str()), prefix1.size());
+    hash256.Write(data.data(), data.size());
+    hash256.Finalize(&result[0]);
+    this->s1.memberFromSeed(&result[0]);
+
+    data.clear();
+    result.clear();
+    hash256.Reset();
+    s1.serialize(data.data());
+
+    std::string prefix2 = "s2_generation";
+    hash256.Write(reinterpret_cast<const unsigned char*>(prefix2.c_str()), prefix2.size());
+    hash256.Write(data.data(), data.size());
+    hash256.Finalize(&result[0]);
+    this->s2.memberFromSeed(&result[0]);
+}
+
 const Params* SpendKey::get_params() const {
 	return this->params;
 }
@@ -80,6 +111,27 @@ FullViewKey::FullViewKey(const SpendKey& spend_key) {
 	this->s2 = spend_key.get_s2();
 	this->D = this->params->get_G()*spend_key.get_r();
 	this->P2 = this->params->get_F()*this->s2 + this->D;
+}
+
+FullViewKey::FullViewKey(const Params* params, const std::vector<unsigned char>& serialized) {
+    this->params = params;
+    if (serialized.size() < 2 * Scalar::memoryRequired() + 2 * GroupElement::memoryRequired())
+        return;
+
+    Scalar s1;
+    s1.deserialize(serialized.data());
+    this->s1 = s1;
+    Scalar s2;
+    s2.deserialize(serialized.data() + Scalar::memoryRequired());
+    this->s2 = s2;
+
+    GroupElement D;
+    D.deserialize(serialized.data() + 2*Scalar::memoryRequired());
+    this->D = D;
+
+    GroupElement P2;
+    P2.deserialize(serialized.data() + 2*Scalar::memoryRequired() + GroupElement::memoryRequired());
+    this->P2 = P2;
 }
 
 const Params* FullViewKey::get_params() const {

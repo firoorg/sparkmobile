@@ -7,14 +7,12 @@
 
 namespace spark {
 
-// Let's define inital spark address version as P (private),
-const char SPARK_ADDRESS_VERSION = 'P';
-
 using namespace secp_primitives;
 
 class SpendKey {
 public:
 	SpendKey(const Params* params);
+    SpendKey(const Params* params, const std::vector<unsigned char>& serialized_r);
     SpendKey(const Params* params, const Scalar& r_);
 	const Params* get_params() const;
 	const Scalar& get_s1() const;
@@ -33,6 +31,7 @@ class FullViewKey {
 public:
 	FullViewKey();
     FullViewKey(const Params* params);
+    FullViewKey(const Params* params, const std::vector<unsigned char>& serialized);
 	FullViewKey(const SpendKey& spend_key);
 	const Params* get_params() const;
 	const Scalar& get_s1() const;
@@ -88,7 +87,6 @@ public:
 	unsigned char decode(const std::string& str);
 
 private:
-    char version = SPARK_ADDRESS_VERSION;
 	const Params* params;
 	std::vector<unsigned char> d;
 	GroupElement Q1, Q2;

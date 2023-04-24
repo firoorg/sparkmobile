@@ -172,11 +172,54 @@ std::vector<std::pair<CAmount, std::vector<std::pair<spark::Coin, CSparkMintMeta
     return result;
 }
 
-spark::Coin getCoinFromMeta(const CSparkMintMeta& meta, const std::vector<unsigned char> serialized_viewkey)
+spark::Address getAddress(const std::vector<unsigned char>& serialize_fullvKey, const uint64_t diversifier)
+{
+    const spark::Params* params = spark::Params::get_default();
+    spark::FullViewKey fullViewKey(params, serialize_fullvKey);
+    spark::IncomingViewKey incomingViewKey(fullViewKey);
+
+    return spark::Address(incomingViewKey, diversifier);
+}
+
+spark::Coin getCoinFromMeta(const CSparkMintMeta& meta, const std::vector<unsigned char>& serialize_fullvKey)
 {
     const auto* params = spark::Params::get_default();
-    const spark::IncomingViewKey viewKey(params, serialized_viewkey);
-    spark::Address address(viewKey, meta.i);
+    spark::FullViewKey fullViewKey(params, serialize_fullvKey);
+    const spark::IncomingViewKey incomingViewKey(fullViewKey);
+    spark::Address address(incomingViewKey, meta.i);
 
     return spark::Coin(params, meta.type, meta.k, address, meta.v, meta.memo, meta.serial_context);
+}
+
+void getSparkSpendScripts(const std::vector<unsigned char>& serialized_fullvKey,
+                          const std::vector<unsigned char>& serialized_spendKey,
+                          const std::vector<spark::InputCoinData>& inputs,
+                          const std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data,
+                          const std::map<uint64_t, uint256>& idAndBlockHashes,
+                          CAmount fee,
+                          uint64_t transparentOut,
+                          const std::vector<spark::OutputCoinData>& privOutputs,
+                          std::vector<uint8_t>& inputScript, std::vector<std::vector<unsigned char>>& outputScripts)
+{
+    inputScript.clear();
+    outputScripts.clear();
+    const auto* params = spark::Params::get_default();
+    spark::FullViewKey fullViewKey(params, serialized_fullvKey);
+    spark::SpendKey spendKey(params, serialized_spendKey);
+    spark::SpendTransaction spendTransaction(params, fullViewKey, spendKey, inputs, cover_set_data, fee, transparentOut, privOutputs);
+    spendTransaction.setBlockHashes(idAndBlockHashes);
+    CDataStream serialized(SER_NETWORK, PROTOCOL_VERSION);
+    serialized << spendTransaction;
+
+    inputScript = std::vector<uint8_t>(serialized.begin(), serialized.end());
+
+    const std::vector<spark::Coin>& outCoins = spendTransaction.getOutCoins();
+    for (auto& outCoin : outCoins) {
+        // construct spend script
+        CDataStream serialized(SER_NETWORK, PROTOCOL_VERSION);
+        serialized << outCoin;
+        std::vector<unsigned char> script;
+        script.insert(script.end(), serialized.begin(), serialized.end());
+        outputScripts.emplace_back(script);
+    }
 }
