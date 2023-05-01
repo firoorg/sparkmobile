@@ -41,5 +41,7 @@ echo Building Spark Spend Transaction Tests
 g++ tests/spend_transaction_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_spend_transaction_tests
 echo Building Spark Transcript Tests
 g++ tests/transcript_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_transcript_tests
+echo Building Full Tests
+g++ tests/full_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/full_test
 
 

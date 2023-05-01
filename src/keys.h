@@ -31,7 +31,6 @@ class FullViewKey {
 public:
 	FullViewKey();
     FullViewKey(const Params* params);
-    FullViewKey(const Params* params, const std::vector<unsigned char>& serialized);
 	FullViewKey(const SpendKey& spend_key);
 	const Params* get_params() const;
 	const Scalar& get_s1() const;

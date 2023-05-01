@@ -36,4 +36,5 @@ echo Running Spend Transaction Tests
 ./$1/spark_spend_transaction_tests
 echo Running Transcript Tests
 ./$1/spark_transcript_tests
-
+echo Running Full Tests
+./$1/full_test

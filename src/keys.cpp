@@ -113,27 +113,6 @@ FullViewKey::FullViewKey(const SpendKey& spend_key) {
 	this->P2 = this->params->get_F()*this->s2 + this->D;
 }
 
-FullViewKey::FullViewKey(const Params* params, const std::vector<unsigned char>& serialized) {
-    this->params = params;
-    if (serialized.size() < 2 * Scalar::memoryRequired() + 2 * GroupElement::memoryRequired())
-        return;
-
-    Scalar s1;
-    s1.deserialize(serialized.data());
-    this->s1 = s1;
-    Scalar s2;
-    s2.deserialize(serialized.data() + Scalar::memoryRequired());
-    this->s2 = s2;
-
-    GroupElement D;
-    D.deserialize(serialized.data() + 2*Scalar::memoryRequired());
-    this->D = D;
-
-    GroupElement P2;
-    P2.deserialize(serialized.data() + 2*Scalar::memoryRequired() + GroupElement::memoryRequired());
-    this->P2 = P2;
-}
-
 const Params* FullViewKey::get_params() const {
 	return this->params;
 }

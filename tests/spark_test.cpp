@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
 
     std::vector<spark::MintedCoinData> outputs;
 
-    for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
         spark::MintedCoinData output = {address, 1, "Test memo"};
         outputs.push_back(output);
     }
@@ -43,11 +43,12 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
     std::list<std::pair<spark::Coin, CSparkMintMeta>> coins;
     spark::Coin coin(params, 0, (Scalar().randomize()), address, v, "Test memo", random_char_vector());
     CSparkMintMeta mint;
+    mint.v = v;
+    mint.isUsed = false;
     coins.push_back(std::make_pair(coin, mint));
 
     std::vector<std::pair<CAmount, std::vector<std::pair<spark::Coin, CSparkMintMeta>>>> r = SelectSparkCoins(1, true, coins, coins.size());
     BOOST_CHECK_EQUAL(r.size(), 1);
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()

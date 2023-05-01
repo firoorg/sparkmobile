@@ -6,6 +6,31 @@
 
 #define SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION     (10000 * COIN)
 
+
+spark::SpendKey createSpendKey(const SpendKeyData& data) {
+    std::string nCountStr = std::to_string(data.getIndex());
+    CHash256 hasher;
+    std::string prefix = "r_generation";
+    hasher.Write(reinterpret_cast<const unsigned char*>(prefix.c_str()), prefix.size());
+    hasher.Write(data.getKeyData(), data.size());
+    hasher.Write(reinterpret_cast<const unsigned char*>(nCountStr.c_str()), nCountStr.size());
+    unsigned char hash[CSHA256::OUTPUT_SIZE];
+    hasher.Finalize(hash);
+
+    secp_primitives::Scalar r;
+    r.memberFromSeed(hash);
+    spark::SpendKey key(spark::Params::get_default(), r);
+    return key;
+}
+
+spark::FullViewKey createFullViewKey(const spark::SpendKey& spendKey) {
+    return spark::FullViewKey(spendKey);
+}
+
+spark::IncomingViewKey createIncomingViewKey(const spark::FullViewKey& fullViewKey) {
+    return spark::IncomingViewKey(fullViewKey);
+}
+
 template <typename Iterator>
 static uint64_t CalculateSparkCoinsBalance(Iterator begin, Iterator end)
 {
@@ -76,7 +101,6 @@ bool GetCoinsToSpend(
     CAmount spend_val(0);
 
     std::list<CoinData> coinsToSpend;
-
     while (spend_val < required) {
         if (coins.empty())
             break;
@@ -172,27 +196,25 @@ std::vector<std::pair<CAmount, std::vector<std::pair<spark::Coin, CSparkMintMeta
     return result;
 }
 
-spark::Address getAddress(const std::vector<unsigned char>& serialize_fullvKey, const uint64_t diversifier)
+spark::Address getAddress(const spark::IncomingViewKey& incomingViewKey, const uint64_t diversifier)
 {
-    const spark::Params* params = spark::Params::get_default();
-    spark::FullViewKey fullViewKey(params, serialize_fullvKey);
-    spark::IncomingViewKey incomingViewKey(fullViewKey);
-
     return spark::Address(incomingViewKey, diversifier);
 }
 
-spark::Coin getCoinFromMeta(const CSparkMintMeta& meta, const std::vector<unsigned char>& serialize_fullvKey)
+spark::Coin getCoinFromMeta(const CSparkMintMeta& meta, const spark::IncomingViewKey& incomingViewKey)
 {
     const auto* params = spark::Params::get_default();
-    spark::FullViewKey fullViewKey(params, serialize_fullvKey);
-    const spark::IncomingViewKey incomingViewKey(fullViewKey);
     spark::Address address(incomingViewKey, meta.i);
-
     return spark::Coin(params, meta.type, meta.k, address, meta.v, meta.memo, meta.serial_context);
 }
 
-void getSparkSpendScripts(const std::vector<unsigned char>& serialized_fullvKey,
-                          const std::vector<unsigned char>& serialized_spendKey,
+spark::IdentifiedCoinData identifyCoin(spark::Coin coin, const spark::IncomingViewKey& incoming_view_key)
+{
+    return coin.identify(incoming_view_key);
+}
+
+void getSparkSpendScripts(const spark::FullViewKey& fullViewKey,
+                          const spark::SpendKey& spendKey,
                           const std::vector<spark::InputCoinData>& inputs,
                           const std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data,
                           const std::map<uint64_t, uint256>& idAndBlockHashes,
@@ -204,8 +226,6 @@ void getSparkSpendScripts(const std::vector<unsigned char>& serialized_fullvKey,
     inputScript.clear();
     outputScripts.clear();
     const auto* params = spark::Params::get_default();
-    spark::FullViewKey fullViewKey(params, serialized_fullvKey);
-    spark::SpendKey spendKey(params, serialized_spendKey);
     spark::SpendTransaction spendTransaction(params, fullViewKey, spendKey, inputs, cover_set_data, fee, transparentOut, privOutputs);
     spendTransaction.setBlockHashes(idAndBlockHashes);
     CDataStream serialized(SER_NETWORK, PROTOCOL_VERSION);
@@ -222,4 +242,113 @@ void getSparkSpendScripts(const std::vector<unsigned char>& serialized_fullvKey,
         script.insert(script.end(), serialized.begin(), serialized.end());
         outputScripts.emplace_back(script);
     }
+}
+
+void ParseSparkMintTransaction(const std::vector<CScript>& scripts, spark::MintTransaction& mintTransaction)
+{
+    std::vector<CDataStream> serializedCoins;
+    for (const auto& script : scripts) {
+        if (!script.IsSparkMint())
+            throw std::invalid_argument("Script is not a Spark mint");
+
+        std::vector<unsigned char> serialized(script.begin() + 1, script.end());
+        size_t size = spark::Coin::memoryRequired() + 8; // 8 is the size of uint64_t
+        if (serialized.size() < size) {
+            throw std::invalid_argument("Script is not a valid Spark mint");
+        }
+
+        CDataStream stream(
+                std::vector<unsigned char>(serialized.begin(), serialized.end()),
+                SER_NETWORK,
+                PROTOCOL_VERSION
+        );
+
+        serializedCoins.push_back(stream);
+    }
+    try {
+        mintTransaction.setMintTransaction(serializedCoins);
+    } catch (...) {
+        throw std::invalid_argument("Unable to deserialize Spark mint transaction");
+    }
+}
+
+void ParseSparkMintCoin(const CScript& script, spark::Coin& txCoin)
+{
+    if (!script.IsSparkMint() && !script.IsSparkSMint())
+        throw std::invalid_argument("Script is not a Spark mint");
+
+    if (script.size() < 213) {
+        throw std::invalid_argument("Script is not a valid Spark Mint");
+    }
+
+    std::vector<unsigned char> serialized(script.begin() + 1, script.end());
+    CDataStream stream(
+            std::vector<unsigned char>(serialized.begin(), serialized.end()),
+            SER_NETWORK,
+            PROTOCOL_VERSION
+    );
+
+    try {
+        stream >> txCoin;
+    } catch (...) {
+        throw std::invalid_argument("Unable to deserialize Spark mint");
+    }
+}
+
+CSparkMintMeta getMetadata(const spark::Coin& coin, const spark::IncomingViewKey& incoming_view_key) {
+    CSparkMintMeta meta;
+    spark::IdentifiedCoinData identifiedCoinData;
+    try {
+        identifiedCoinData = identifyCoin(coin, incoming_view_key);
+    } catch (...) {
+        return meta;
+    }
+
+    meta.isUsed = false;
+    meta.v = identifiedCoinData.v;
+    meta.memo = identifiedCoinData.memo;
+    meta.d = identifiedCoinData.d;
+    meta.i = identifiedCoinData.i;
+    meta.k = identifiedCoinData.k;
+    meta.serial_context = {};
+
+    return meta;
+}
+
+spark::InputCoinData getInputData(spark::Coin coin, const spark::FullViewKey& full_view_key, const spark::IncomingViewKey& incoming_view_key)
+{
+    spark::InputCoinData inputCoinData;
+    spark::IdentifiedCoinData identifiedCoinData;
+    try {
+        identifiedCoinData = identifyCoin(coin, incoming_view_key);
+    } catch (...) {
+        return inputCoinData;
+    }
+
+    spark::RecoveredCoinData recoveredCoinData = coin.recover(full_view_key, identifiedCoinData);
+    inputCoinData.T = recoveredCoinData.T;
+    inputCoinData.s = recoveredCoinData.s;
+    inputCoinData.k = identifiedCoinData.k;
+    inputCoinData.v = identifiedCoinData.v;
+
+    return inputCoinData;
+}
+
+spark::InputCoinData getInputData(std::pair<spark::Coin, CSparkMintMeta> coin, const spark::FullViewKey& full_view_key)
+{
+    spark::IdentifiedCoinData identifiedCoinData;
+    identifiedCoinData.k = coin.second.k;
+    identifiedCoinData.v = coin.second.v;
+    identifiedCoinData.d = coin.second.d;
+    identifiedCoinData.memo = coin.second.memo;
+    identifiedCoinData.i = coin.second.i;
+
+    spark::RecoveredCoinData recoveredCoinData = coin.first.recover(full_view_key, identifiedCoinData);
+    spark::InputCoinData inputCoinData;
+    inputCoinData.T = recoveredCoinData.T;
+    inputCoinData.s = recoveredCoinData.s;
+    inputCoinData.k = identifiedCoinData.k;
+    inputCoinData.v = identifiedCoinData.v;
+
+    return inputCoinData;
 }
