@@ -12,7 +12,6 @@ using namespace secp_primitives;
 class SpendKey {
 public:
 	SpendKey(const Params* params);
-    SpendKey(const Params* params, const std::vector<unsigned char>& serialized_r);
     SpendKey(const Params* params, const Scalar& r_);
 	const Params* get_params() const;
 	const Scalar& get_s1() const;
@@ -57,14 +56,12 @@ private:
 class IncomingViewKey {
 public:
 	IncomingViewKey();
-    IncomingViewKey(const Params* params, const std::vector<unsigned char>& serialized);
     IncomingViewKey(const Params* params);
 	IncomingViewKey(const FullViewKey& full_view_key);
 	const Params* get_params() const;
 	const Scalar& get_s1() const;
 	const GroupElement& get_P2() const;
 	uint64_t get_diversifier(const std::vector<unsigned char>& d) const;
-    std::vector<unsigned char> get_serialized() const;
 
 private:
 	const Params* params;
