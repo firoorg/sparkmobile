@@ -54,17 +54,17 @@ BOOST_AUTO_TEST_CASE(generate_verify)
     mintTransaction.getCoins(coins);
     BOOST_TEST(coins.size() == 2);
 
-    std::list<std::pair<spark::Coin, CSparkMintMeta>> in_coins;
-    in_coins.push_back(std::make_pair(coins[0], getMetadata(coins[0], incoming_view_key)));
-    in_coins.push_back(std::make_pair(coins[1], getMetadata(coins[1], incoming_view_key)));
+    std::list<CSparkMintMeta> in_coins;
+    in_coins.push_back(getMetadata(coins[0], incoming_view_key));
+    in_coins.push_back(getMetadata(coins[1], incoming_view_key));
 
     CAmount spendAmount = 110;
-    std::vector<std::pair<spark::Coin, CSparkMintMeta>> coinsToSpend;
+    std::vector< CSparkMintMeta> coinsToSpend;
     int64_t changeToMint;
-    BOOST_TEST(GetCoinsToSpend(spendAmount, coinsToSpend, in_coins, changeToMint, 50));
+    BOOST_TEST(GetCoinsToSpend(spendAmount, coinsToSpend, in_coins, changeToMint));
 
     std::vector<spark::InputCoinData> inputs;
-    spark::InputCoinData inputCoinData = getInputData(coinsToSpend[0].first, full_view_key, incoming_view_key);
+    spark::InputCoinData inputCoinData = getInputData(coinsToSpend[0].coin, full_view_key, incoming_view_key);
     inputCoinData.cover_set_id = 0;
     inputCoinData.index = 1;
     inputs.push_back(inputCoinData);

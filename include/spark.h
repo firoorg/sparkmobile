@@ -12,6 +12,16 @@
 //
 
 const uint32_t DEFAULT_SPARK_NCOUNT = 1;
+#define SPARK_OUT_LIMIT_PER_TX         16
+#define SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION     (10000 * COIN)
+// Spend input scrypt opcode
+#define OP_SPARKSPEND 0xd3
+// Transaction type (nType)
+#define TRANSACTION_SPARK 9
+// Spark spend version (nVersion)
+#define SPARK_TX_VERSION 3
+//Diversifier for spark change address,
+const uint32_t SPARK_CHANGE_D = 0x270F;
 
 struct CRecipient
 {
@@ -41,9 +51,13 @@ spark::FullViewKey createFullViewKey(const spark::SpendKey& spendKey);
 spark::IncomingViewKey createIncomingViewKey(const spark::FullViewKey& fullViewKey);
 
 std::vector<CRecipient> CreateSparkMintRecipients(const std::vector<spark::MintedCoinData>& outputs, const std::vector<unsigned char>& serial_context, bool generate);
-bool GetCoinsToSpend(CAmount required, std::vector<std::pair<spark::Coin, CSparkMintMeta>>& coinsToSpend_out, std::list<std::pair<spark::Coin, CSparkMintMeta>> coins,  int64_t& changeToMint, const size_t coinsToSpendLimit);
-std::vector<std::pair<CAmount, std::vector<std::pair<spark::Coin, CSparkMintMeta>>>> SelectSparkCoins(CAmount required, bool subtractFeeFromAmount, std::list<std::pair<spark::Coin, CSparkMintMeta>> coins, std::size_t mintNum);
 
+std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(CAmount required, bool subtractFeeFromAmount, std::list<CSparkMintMeta> coins, std::size_t mintNum);
+bool GetCoinsToSpend(
+        CAmount required,
+        std::vector<CSparkMintMeta>& coinsToSpend_out,
+        std::list<CSparkMintMeta> coins,
+        int64_t& changeToMint);
 spark::Address getAddress(const spark::IncomingViewKey& incomingViewKey, const uint64_t diversifier);
 
 void ParseSparkMintTransaction(const std::vector<CScript>& scripts, spark::MintTransaction& mintTransaction);
@@ -58,6 +72,20 @@ void getSparkSpendScripts(const spark::FullViewKey& fullViewKey,
                           uint64_t transparentOut,
                           const std::vector<spark::OutputCoinData>& privOutputs,
                           std::vector<uint8_t>& inputScript, std::vector<std::vector<unsigned char>>& outputScripts);
+
+void CreateSparkSpendTransaction(
+        const spark::SpendKey& spendKey,
+        const spark::FullViewKey& fullViewKey,
+        const spark::IncomingViewKey& incomingViewKey,
+        const std::vector<std::pair<CAmount, bool>>& recipients,
+        const std::vector<std::pair<spark::OutputCoinData, bool>>& privateRecipients,
+        std::list<CSparkMintMeta> coins,
+        const std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data_all,
+        const std::map<uint64_t, uint256>& idAndBlockHashes_all,
+        const uint256& txHashSig,
+        CAmount &fee,
+        std::vector<uint8_t>& serializedSpend,
+        std::vector<std::vector<unsigned char>>& outputScripts);
 
 // CSparkMintMeta is defined at ../src/primitives.h
 spark::Coin getCoinFromMeta(const CSparkMintMeta& meta, const spark::IncomingViewKey& incomingViewKey);

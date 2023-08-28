@@ -40,15 +40,16 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
     BOOST_CHECK_EQUAL(recipients.size(), 3);
 
     const uint64_t v = 1;
-    std::list<std::pair<spark::Coin, CSparkMintMeta>> coins;
+    std::list<CSparkMintMeta> coins;
     spark::Coin coin(params, 0, (Scalar().randomize()), address, v, "Test memo", random_char_vector());
     CSparkMintMeta mint;
     mint.v = v;
     mint.isUsed = false;
-    coins.push_back(std::make_pair(coin, mint));
+    mint.coin = coin;
+    coins.push_back(mint);
 
-    std::vector<std::pair<CAmount, std::vector<std::pair<spark::Coin, CSparkMintMeta>>>> r = SelectSparkCoins(1, true, coins, coins.size());
-    BOOST_CHECK_EQUAL(r.size(), 1);
+    std::pair<CAmount, std::vector<CSparkMintMeta>> r = SelectSparkCoins(1, true, coins, coins.size());
+    BOOST_CHECK_EQUAL(r.second.size(), 1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
