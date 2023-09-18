@@ -1,4 +1,5 @@
 #include "../include/spark.h"
+#include "../src/spark.h"
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
@@ -40,7 +41,7 @@ BOOST_AUTO_TEST_CASE(generate_verify)
     std::vector<spark::MintedCoinData> outputs{{address, uint64_t(100), "memo"}, {address, uint64_t(200), "memo"}};
 
     std::vector<unsigned char> serial_context = {};
-    std::vector<CRecipient> recipients = CreateSparkMintRecipients(outputs, serial_context, true);
+    std::vector<CRecipient> recipients = createSparkMintRecipients(outputs, serial_context, true);
 
     std::vector<CScript> scripts;
     scripts.push_back(recipients[0].pubKey);

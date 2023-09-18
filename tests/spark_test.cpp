@@ -2,6 +2,7 @@
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>
 #include "../include/spark.h"
+#include "../src/spark.h"
 
 namespace spark {
 
@@ -36,7 +37,7 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
         outputs.push_back(output);
     }
 
-    std::vector<CRecipient>  recipients = CreateSparkMintRecipients(outputs, random_char_vector(), true);
+    std::vector<CRecipient>  recipients = createSparkMintRecipients(outputs, random_char_vector(), true);
     BOOST_CHECK_EQUAL(recipients.size(), 3);
 
     const uint64_t v = 1;

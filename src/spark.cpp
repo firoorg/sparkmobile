@@ -1,4 +1,5 @@
 #include "../include/spark.h"
+#include "spark.h"
 //#include "../bitcoin/amount.h"
 //#include <iostream>
 
@@ -39,7 +40,7 @@ static uint64_t CalculateSparkCoinsBalance(Iterator begin, Iterator end)
     return balance;
 }
 
-std::vector<CRecipient> CreateSparkMintRecipients(
+std::vector<CRecipient> createSparkMintRecipients(
                         const std::vector<spark::MintedCoinData>& outputs,
                         const std::vector<unsigned char>& serial_context,
                         bool generate)
@@ -186,7 +187,7 @@ bool getIndex(const spark::Coin& coin, const std::vector<spark::Coin>& anonymity
     return false;
 }
 
-void CreateSparkSpendTransaction(
+void createSparkSpendTransaction(
         const spark::SpendKey& spendKey,
         const spark::FullViewKey& fullViewKey,
         const spark::IncomingViewKey& incomingViewKey,
