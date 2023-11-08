@@ -1,10 +1,12 @@
 #ifndef ORG_FIRO_SPARK_DART_INTERFACE_H
 #define ORG_FIRO_SPARK_DART_INTERFACE_H
 
-const char *generateSpendKey();
+const char* getAddress(const char* keyData, int index, uint64_t diversifier);
 
-const char *createSpendKey(const char * r);
+/*
+const char *createFullViewKey(const char* keyData, int index);
 
-const char *createFullViewKey(const char * spend_key_r);
+const char* createIncomingViewKey(const char* keyData, int index);
+*/
 
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H

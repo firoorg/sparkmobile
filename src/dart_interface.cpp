@@ -1,95 +1,75 @@
 #include "../include/spark.h"
 #include "utils.h"
+
 #include <cstring>
 #include <iostream> // Just for printing.
 
 using namespace spark;
 
-/// Create a SpendKey from a given keyData and index.
-///
-/// keyData is derived using BIP44 from a seed.
-const char * createSpendKey(const char *keyData, int index) {
+/// FFI-friendly wrapper for spark:getAddress.
+const char* getAddress(const char* keyData, int index, uint64_t diversifier) {
     try {
-        // Convert the keyData from hex string to binary
-        unsigned char* key_data_bin = hex2bin(keyData);
+        // Convert keyData to Address object using getAddressFromData.
+        spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
+        spark::FullViewKey fullViewKey(spendKey);
+        spark::IncomingViewKey incomingViewKey(fullViewKey);
+        spark::Address address(incomingViewKey, diversifier);
 
-        // Use the default (deployment) parameters.
-        const spark::Params *params = spark::Params::get_default();
+        // Encode the Address object into a string.
+        std::string encodedAddress = address.encode(ADDRESS_NETWORK_TESTNET);
 
-        // Generate r from keyData and index.
-        std::string nCountStr = std::to_string(index);
-        CHash256 hasher;
-        std::string prefix = "r_generation";
-        hasher.Write(reinterpret_cast<const unsigned char*>(prefix.c_str()), prefix.size());
-        hasher.Write(key_data_bin, std::strlen(keyData) / 2); // divide by 2 because it's hex string (2 chars for 1 byte)
-        hasher.Write(reinterpret_cast<const unsigned char*>(nCountStr.c_str()), nCountStr.size());
-        unsigned char hash[CSHA256::OUTPUT_SIZE];
-        hasher.Finalize(hash);
+        // Allocate memory for the C-style string.
+        char* cstr = new char[encodedAddress.length() + 1];
 
-        // Create a Scalar from the hash.
-        secp_primitives::Scalar r_scalar;
-        r_scalar.memberFromSeed(hash);
+        // Copy the std::string to the C-style string.
+        std::strcpy(cstr, encodedAddress.c_str());
 
-        // Create a SpendKey from the Scalar.
-        spark::SpendKey key(params, r_scalar);
-
-        // Serialize the SpendKey or its components to an FFI-friendly format.
-        // Assuming you need to serialize the Scalar r from the SpendKey,
-        // and that the serialize method populates an unsigned char array.
-        unsigned char serialized_r_buffer[32]; // Replace 32 if the size is different
-        r_scalar.serialize(serialized_r_buffer);
-
-        // Convert the serialized data to a hex string.
-        char *serialized_r_str = bin2hex(serialized_r_buffer, sizeof(serialized_r_buffer));
-
-        // Free the allocated memory for key_data_bin
-        delete[] key_data_bin;
-
-        // Return the hex string. Caller is responsible for freeing this memory.
-        return serialized_r_str;
-
+        return cstr;
     } catch (const std::exception& e) {
-        // If an exception is thrown, return a static error message.
-        // Note: We are returning a string literal here because it is managed by the system
-        // and doesn't need to be freed by the caller.
-        return "Exception occurred";  // Or use e.what() if the caller can handle dynamic allocation.
+        std::cerr << "Exception: " << e.what() << std::endl;
+        return nullptr;
     }
 }
 
-// Create a FullViewKey from a given SpendKey r.
-const char * createFullViewKey(const char *spend_key_r) {
+/*
+/// FFI-friendly wrapper for spark::createFullViewKey.
+const char* createFullViewKey(const char* keyData, int index) {
     try {
-        // Use the default (deployment) parameters.
-        const spark::Params *params = spark::Params::get_default();
+        spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
+        spark::FullViewKey fullViewKey(spendKey);
 
-        // Get the unsigned char* data from hex2bin.
-        unsigned char* spend_key_data = hex2bin(spend_key_r);
+        // Serialize the FullViewKey.
+        std::string serializedKey = serializeFullViewKey(fullViewKey);
 
-        // Create a SpendKey from the spend key data.
-        spark::SpendKey spend_key_(params, spend_key_data);
+        // Cast the string to an FFI-friendly char*.
+        char* result = new char[serializedKey.size() + 1];
+        std::copy(serializedKey.begin(), serializedKey.end(), result);
+        result[serializedKey.size()] = '\0'; // Null-terminate the C string.
 
-        // Create a FullViewKey from the SpendKey.
-        spark::FullViewKey full_view_key(spend_key_);
-
-        // Create a CDataStream object with the correct stream version and type.
-        CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-
-        // Serialize the full_view_key object into the stream.
-        full_view_key.Serialize(ss);
-
-        // Convert the stream to a std::vector<unsigned char>.
-        std::vector<unsigned char> serialized_full_view_key(ss.begin(), ss.end());
-
-        // Cast the serialized FullViewKey value to an FFI-friendly string.
-        const char *serialized_full_view_key_str = bin2hex(serialized_full_view_key.data(), serialized_full_view_key.size());
-
-        // Return the serialized FullViewKey value.
-        return serialized_full_view_key_str;
+        return result;
     } catch (const std::exception& e) {
-        // If an exception is thrown, print it to the console.
-        std::cout << "Exception: " << e.what() << "\n";
-
-        // Return the error message.
-        return e.what();
+        return nullptr;
     }
 }
+
+/// FFI-friendly wrapper for spark::createIncomingViewKey.
+const char* createIncomingViewKey(const char* keyData, int index) {
+    try {
+        spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
+        spark::FullViewKey fullViewKey(spendKey);
+        spark::IncomingViewKey incomingViewKey(fullViewKey);
+
+        // Serialize the FullViewKey.
+        std::string serializedKey = serializeIncomingViewKey(incomingViewKey);
+
+        // Cast the string to an FFI-friendly char*.
+        char* result = new char[serializedKey.size() + 1];
+        std::copy(serializedKey.begin(), serializedKey.end(), result);
+        result[serializedKey.size()] = '\0'; // Null-terminate the C string.
+
+        return result;
+    } catch (const std::exception& e) {
+        return nullptr;
+    }
+}
+*/
