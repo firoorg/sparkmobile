@@ -61,8 +61,8 @@ BOOST_AUTO_TEST_CASE(correctness)
     BOOST_CHECK_EQUAL(decoded_built_in.get_Q2(), decoded_from_data.get_Q2());
 
     // Print both addresses to the console.
-    std::cout << "Built-in: " << encoded_built_in << std::endl;
-    std::cout << "From data: " << encoded_from_data << std::endl;
+    std::cout << "Built-in:  " << encoded_built_in << std::endl;
+    std::cout << "Interface: " << encoded_from_data << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()
