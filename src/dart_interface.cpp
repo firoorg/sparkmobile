@@ -7,6 +7,7 @@
 using namespace spark;
 
 /// FFI-friendly wrapper for spark:getAddress.
+__attribute__((visibility("default"))) __attribute__((used))
 const char* getAddress(const char* keyData, int index, int diversifier) {
 // To support a diversifier above 2,147,483,647, use the definition below.
 // const char* getAddress(const char* keyData, int index, int32_t diversifier_high, int32_t diversifier_low) {
