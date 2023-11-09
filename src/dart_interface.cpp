@@ -5,6 +5,7 @@
 #include <iostream> // Just for printing.
 
 using namespace spark;
+extern "C" {
 
 /// FFI-friendly wrapper for spark:getAddress.
 __attribute__((visibility("default"))) __attribute__((used))
@@ -16,6 +17,7 @@ const char* getAddress(const char* keyData, int index, int diversifier) {
         // This assumes that the diversifier being passed can fit within the range of uint64_t.
         uint64_t diversifier_cast = static_cast<uint64_t>(diversifier);
 
+        // To support a diversifier above 2,147,483,647, use the code below.
         // Combine the two 32-bit values into a single 64-bit unsigned integer.
         // uint64_t diversifier_cast = (static_cast<uint64_t>(diversifier_high) << 32) | (static_cast<uint32_t>(diversifier_low) & 0xFFFFFFFFULL);
 
@@ -83,3 +85,5 @@ const char* createIncomingViewKey(const char* keyData, int index) {
     }
 }
 */
+
+} // extern "C"
