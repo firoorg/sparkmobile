@@ -70,6 +70,16 @@ unsigned char *hex2bin(const char *hexstr) {
 	return chrs;
 }
 
+std::vector<uint8_t> hex2binr(const char *hexstr) {
+	size_t length = std::strlen(hexstr) / 2;
+	std::vector<uint8_t> result(length);
+	for (size_t i = 0; i < length; i++) {
+		std::string byteString = std::string(hexstr + 2 * i, 2);
+		result[i] = static_cast<uint8_t>(std::strtol(byteString.c_str(), nullptr, 16));
+	}
+	return result;
+}
+
 const char *bin2hex(const unsigned char *bytes, int size) {
 	std::string str;
 	for (int i = 0; i < size; ++i) {
