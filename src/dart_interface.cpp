@@ -9,23 +9,22 @@ extern "C" {
 
 /// FFI-friendly wrapper for spark:getAddress.
 __attribute__((visibility("default"))) __attribute__((used))
-const char* getAddress(const char* keyData, int index, int diversifier) {
+const char* getAddress(const int* keyDataArray, int keyDataLength, int index, int diversifier) {
 // To support a diversifier above 2,147,483,647, use the definition below.
-// const char* getAddress(const char* keyData, int index, int32_t diversifier_high, int32_t diversifier_low) {
+// const char* getAddress(const int* keyDataArray, int index, int32_t diversifier_high, int32_t diversifier_low) {
     try {
-        // The diversifier is cast to uint64_t if the underlying implementation requires it.
-        // This assumes that the diversifier being passed can fit within the range of uint64_t.
-        uint64_t diversifier_cast = static_cast<uint64_t>(diversifier);
+        // Convert the keyDataArray to a vector of bytes (uint8_t).
+        std::vector<uint8_t> keyData(keyDataArray, keyDataArray + keyDataLength);
 
         // To support a diversifier above 2,147,483,647, use the code below.
         // Combine the two 32-bit values into a single 64-bit unsigned integer.
         // uint64_t diversifier_cast = (static_cast<uint64_t>(diversifier_high) << 32) | (static_cast<uint32_t>(diversifier_low) & 0xFFFFFFFFULL);
 
-        // Convert keyData to Address object using getAddressFromData.
-        spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
+        // Use the vector data to create the SpendKey.
+        spark::SpendKey spendKey = createSpendKeyFromData(reinterpret_cast<const char*>(keyData.data()), index);
         spark::FullViewKey fullViewKey(spendKey);
         spark::IncomingViewKey incomingViewKey(fullViewKey);
-        spark::Address address(incomingViewKey, diversifier_cast);
+        spark::Address address(incomingViewKey, static_cast<uint64_t>(diversifier));
 
         // Encode the Address object into a string.
         std::string encodedAddress = address.encode(ADDRESS_NETWORK_TESTNET);

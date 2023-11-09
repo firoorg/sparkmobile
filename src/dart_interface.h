@@ -1,16 +1,20 @@
 #ifndef ORG_FIRO_SPARK_DART_INTERFACE_H
 #define ORG_FIRO_SPARK_DART_INTERFACE_H
 
-extern "C" {
+#define EXPORT_DART __attribute__((visibility("default"))) __attribute__((used))
+#ifdef __cplusplus
+#define EXPORT_DART extern "C" __attribute__((visibility("default"))) __attribute__((used))
+#endif
 
-const char* getAddress(const char* keyData, int index, int diversifier);
+EXPORT_DART
+const char* getAddress(const int* keyData, int keyDataLength, int index, int diversifier);
 
 /*
+EXPORT_DART
 const char *createFullViewKey(const char* keyData, int index);
 
+EXPORT_DART
 const char* createIncomingViewKey(const char* keyData, int index);
 */
-
-} // extern "C"
 
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H
