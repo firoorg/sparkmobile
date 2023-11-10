@@ -10,18 +10,9 @@ extern "C" {
 /// FFI-friendly wrapper for spark:getAddress.
 __attribute__((visibility("default"))) __attribute__((used))
 const char* getAddress(const char* keyDataHex, int index, int diversifier, int isTestNet) {
-// To support a diversifier above 2,147,483,647, use the definition below.
-// const char* getAddress(const char* keyDataHex, int index, int32_t diversifier_high, int32_t diversifier_low, bool isTestNet) {
     try {
-        // Convert the hex string to a byte array (vector<uint8_t>).
-        std::vector<uint8_t> keyData = hex2binr(keyDataHex);
-
-        // To support a diversifier above 2,147,483,647, use the code below.
-        // Combine the two 32-bit values into a single 64-bit unsigned integer.
-        // uint64_t diversifier_cast = (static_cast<uint64_t>(diversifier_high) << 32) | (static_cast<uint32_t>(diversifier_low) & 0xFFFFFFFFULL);
-
-        // Use the byte array to create the SpendKey.
-        spark::SpendKey spendKey = createSpendKeyFromData(reinterpret_cast<const char*>(keyData.data()), index);
+        // Use the hex string directly to create the SpendKey.
+        spark::SpendKey spendKey = createSpendKeyFromData(keyDataHex, index);
 
         spark::FullViewKey fullViewKey(spendKey);
         spark::IncomingViewKey incomingViewKey(fullViewKey);
