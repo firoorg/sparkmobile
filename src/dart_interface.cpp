@@ -4,11 +4,67 @@
 #include <cstring>
 #include <iostream> // Just for printing.
 
-using namespace spark;
-extern "C" {
+#define EXPORT_DART extern "C" __attribute__((visibility("default"))) __attribute__((used))
+#ifdef _WIN32
+    #define EXPORT_DART extern "C" __declspec(dllexport)
+#endif
 
-/// FFI-friendly wrapper for spark:getAddress.
-__attribute__((visibility("default"))) __attribute__((used))
+using namespace spark;
+
+/*
+ * FFI-friendly wrapper for spark::createSpendKeyFromData.
+ *
+ * TODO: serialize to an FFI-friendly format.
+EXPORT_DART
+const char* createFullViewKey(const char* keyData, int index) {
+    try {
+        spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
+        spark::FullViewKey fullViewKey(spendKey);
+
+        // Serialize the FullViewKey.
+        std::string serializedKey = serializeFullViewKey(fullViewKey); // TODO.
+
+        // Cast the string to an FFI-friendly char*.
+        char* result = new char[serializedKey.size() + 1];
+        std::copy(serializedKey.begin(), serializedKey.end(), result);
+        result[serializedKey.size()] = '\0'; // Null-terminate the C string.
+
+        return result;
+    } catch (const std::exception& e) {
+        return nullptr;
+    }
+}
+
+/*
+ * FFI-friendly wrapper for spark::createSpendKeyFromData.
+ *
+ * TODO: serialize to an FFI-friendly format.
+EXPORT_DART
+const char* createIncomingViewKey(const char* keyData, int index) {
+    try {
+        spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
+        spark::FullViewKey fullViewKey(spendKey);
+        spark::IncomingViewKey incomingViewKey(fullViewKey);
+
+        // Serialize the FullViewKey.
+        std::string serializedKey = serializeIncomingViewKey(incomingViewKey); // TODO.
+
+        // Cast the string to an FFI-friendly char*.
+        char* result = new char[serializedKey.size() + 1];
+        std::copy(serializedKey.begin(), serializedKey.end(), result);
+        result[serializedKey.size()] = '\0'; // Null-terminate the C string.
+
+        return result;
+    } catch (const std::exception& e) {
+        return nullptr;
+    }
+}
+*/
+
+/*
+ * FFI-friendly wrapper for spark:getAddress.
+ */
+EXPORT_DART
 const char* getAddress(const char* keyDataHex, int index, int diversifier, int isTestNet) {
     try {
         // Use the hex string directly to create the SpendKey.
@@ -31,48 +87,3 @@ const char* getAddress(const char* keyDataHex, int index, int diversifier, int i
         return nullptr;
     }
 }
-
-/*
-/// FFI-friendly wrapper for spark::createFullViewKey.
-const char* createFullViewKey(const char* keyData, int index) {
-    try {
-        spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
-        spark::FullViewKey fullViewKey(spendKey);
-
-        // Serialize the FullViewKey.
-        std::string serializedKey = serializeFullViewKey(fullViewKey);
-
-        // Cast the string to an FFI-friendly char*.
-        char* result = new char[serializedKey.size() + 1];
-        std::copy(serializedKey.begin(), serializedKey.end(), result);
-        result[serializedKey.size()] = '\0'; // Null-terminate the C string.
-
-        return result;
-    } catch (const std::exception& e) {
-        return nullptr;
-    }
-}
-
-/// FFI-friendly wrapper for spark::createIncomingViewKey.
-const char* createIncomingViewKey(const char* keyData, int index) {
-    try {
-        spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
-        spark::FullViewKey fullViewKey(spendKey);
-        spark::IncomingViewKey incomingViewKey(fullViewKey);
-
-        // Serialize the FullViewKey.
-        std::string serializedKey = serializeIncomingViewKey(incomingViewKey);
-
-        // Cast the string to an FFI-friendly char*.
-        char* result = new char[serializedKey.size() + 1];
-        std::copy(serializedKey.begin(), serializedKey.end(), result);
-        result[serializedKey.size()] = '\0'; // Null-terminate the C string.
-
-        return result;
-    } catch (const std::exception& e) {
-        return nullptr;
-    }
-}
-*/
-
-} // extern "C"
