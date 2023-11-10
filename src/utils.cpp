@@ -29,35 +29,17 @@ const char* getAddressFromData(const char* keyData, int index, const uint64_t di
 
 /// Utility function to generate SpendKey from keyData and index.
 spark::SpendKey createSpendKeyFromData(const char *keyData, int index) {
-	try {
-		// Convert the keyData from hex string to binary
-		unsigned char* key_data_bin = hex2bin(keyData);
+    try {
+        // Convert the keyData from hex string to binary
+        unsigned char* key_data_bin = hex2bin(keyData);
 
-		// Use the default (deployment) parameters.
-		const spark::Params *params = spark::Params::get_default();
+        const SpendKeyData *data = new SpendKeyData(key_data_bin, index);
 
-		// Generate r from keyData and index.
-		std::string nCountStr = std::to_string(index);
-		CHash256 hasher;
-		std::string prefix = "r_generation";
-		hasher.Write(reinterpret_cast<const unsigned char*>(prefix.c_str()), prefix.size());
-		hasher.Write(key_data_bin, std::strlen(keyData) / 2); // Divide by 2 because it's hex string (2 chars for 1 byte).
-		hasher.Write(reinterpret_cast<const unsigned char*>(nCountStr.c_str()), nCountStr.size());
-		unsigned char hash[CSHA256::OUTPUT_SIZE];
-		hasher.Finalize(hash);
-
-		// Create a Scalar from the hash.
-		secp_primitives::Scalar r_scalar;
-		r_scalar.memberFromSeed(hash);
-
-		// Create a SpendKey from the Scalar.
-		spark::SpendKey key(params, r_scalar);
-
-		return key;
-	} catch (const std::exception& e) {
-		// We can't return here, so just throw the exception again.
-		throw e;
-	}
+        return createSpendKey(*data);
+    } catch (const std::exception& e) {
+        // We can't return here, so just throw the exception again.
+        throw e;
+    }
 }
 
 unsigned char *hex2bin(const char *hexstr) {
