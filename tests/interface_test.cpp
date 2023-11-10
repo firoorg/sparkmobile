@@ -1,13 +1,13 @@
 /*
- * Interface "test"
+ * Interface "tests"
  *
- * This file is not a real test, but rather a way to test the interface
- * functions in `dart_interface.h` without having to run the Dart code.
+ * Some tests are just to debug functions while they're developed.
  *
- * To run this test, run `./interface bin` to compile the interface, then
- * run `./bin/interface_test` to run the test, as in:
+ * Compile with `./interface bin` and run with  `./bin/interface_test`, as in:
  *
- * `./interface bin && ./bin/interface_test`
+ * ```
+ * ./interface bin && ./bin/interface_test
+ * ```
  */
 
 #include "../src/keys.h"
