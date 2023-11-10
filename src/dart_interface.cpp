@@ -9,9 +9,9 @@ extern "C" {
 
 /// FFI-friendly wrapper for spark:getAddress.
 __attribute__((visibility("default"))) __attribute__((used))
-const char* getAddress(const char* keyDataHex, int index, int diversifier) {
+const char* getAddress(const char* keyDataHex, int index, int diversifier, int isTestNet) {
 // To support a diversifier above 2,147,483,647, use the definition below.
-// const char* getAddress(const char* keyDataHex, int index, int32_t diversifier_high, int32_t diversifier_low) {
+// const char* getAddress(const char* keyDataHex, int index, int32_t diversifier_high, int32_t diversifier_low, bool isTestNet) {
     try {
         // Convert the hex string to a byte array (vector<uint8_t>).
         std::vector<uint8_t> keyData = hex2binr(keyDataHex);
@@ -27,8 +27,8 @@ const char* getAddress(const char* keyDataHex, int index, int diversifier) {
         spark::IncomingViewKey incomingViewKey(fullViewKey);
         spark::Address address(incomingViewKey, static_cast<uint64_t>(diversifier));
 
-        // Encode the Address object into a string.
-        std::string encodedAddress = address.encode(ADDRESS_NETWORK_TESTNET);
+        // Encode the Address object into a string using the appropriate network.
+        std::string encodedAddress = address.encode(isTestNet ? spark::ADDRESS_NETWORK_TESTNET : spark::ADDRESS_NETWORK_MAINNET);
 
         // Allocate memory for the C-style string.
         char* cstr = new char[encodedAddress.length() + 1];

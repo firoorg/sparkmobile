@@ -7,7 +7,7 @@
 #endif
 
 EXPORT_DART
-const char* getAddress(const char* keyDataHex, int index, int diversifier);
+const char* getAddress(const char* keyDataHex, int index, int diversifier, int isTestNet);
 
 /*
 EXPORT_DART
