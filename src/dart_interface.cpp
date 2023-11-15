@@ -65,15 +65,14 @@ const char* createIncomingViewKey(const char* keyData, int index) {
  * FFI-friendly wrapper for spark:getAddress.
  */
 EXPORT_DART
-const char* getAddress(const char* keyDataHex, int index, uint64_t diversifier, int isTestNet) {
+const char* getAddress(const char* keyDataHex, int index, int diversifier, int isTestNet) {
     try {
         // Use the hex string directly to create the SpendKey.
         spark::SpendKey spendKey = createSpendKeyFromData(keyDataHex, index);
 
         spark::FullViewKey fullViewKey(spendKey);
         spark::IncomingViewKey incomingViewKey(fullViewKey);
-        // spark::Address address(incomingViewKey, static_cast<uint64_t>(diversifier));
-        spark::Address address(incomingViewKey, diversifier);
+        spark::Address address(incomingViewKey, static_cast<uint64_t>(diversifier));
 
         // Encode the Address object into a string using the appropriate network.
         std::string encodedAddress = address.encode(isTestNet ? spark::ADDRESS_NETWORK_TESTNET : spark::ADDRESS_NETWORK_MAINNET);
