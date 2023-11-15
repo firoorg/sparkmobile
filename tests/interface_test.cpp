@@ -35,7 +35,7 @@ BOOST_FIXTURE_TEST_SUITE(spark_address_tests, SparkTest)
  BOOST_AUTO_TEST_CASE(getAddress_test) {
      const char* keyDataHex = "0000000000000000000000000000000000000000000000000000000000000000"; // Example key data in hex.
      int index = 1;
-     int diversifier = 0;
+     uint64_t diversifier = 0;
      int isTestNet = 1; // Yes.
 
      // Use the getAddress from Dart interface.

@@ -1,6 +1,8 @@
 #ifndef ORG_FIRO_SPARK_DART_INTERFACE_H
 #define ORG_FIRO_SPARK_DART_INTERFACE_H
 
+#include "stdint.h"
+
 #define EXPORT_DART __attribute__((visibility("default"))) __attribute__((used))
 #ifdef __cplusplus
     #define EXPORT_DART extern "C" __attribute__((visibility("default"))) __attribute__((used))
@@ -10,7 +12,7 @@
 #endif
 
 EXPORT_DART
-const char* getAddress(const char* keyDataHex, int index, int diversifier, int isTestNet);
+const char* getAddress(const char* keyDataHex, int index, uint64_t diversifier, int isTestNet);
 
 /*
 EXPORT_DART
