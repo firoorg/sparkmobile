@@ -4,8 +4,14 @@
 #include <sstream>
 #include <utility>
 #include <vector>
+#include <string>
+#include "dart_interface.h"
+#include "coin.h"
+#include "keys.h"
 
-/// Utility function to generate an address from keyData, index, and a diversifier.
+/*
+ * Utility function to generate an address from keyData, index, and a diversifier.
+ */
 const char* getAddressFromData(const char* keyData, int index, const uint64_t diversifier) {
 	try {
 		spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
@@ -27,7 +33,9 @@ const char* getAddressFromData(const char* keyData, int index, const uint64_t di
 	}
 }
 
-/// Utility function to generate SpendKey from keyData and index.
+/*
+ * Utility function to generate SpendKey from keyData and index.
+ */
 spark::SpendKey createSpendKeyFromData(const char *keyData, int index) {
     try {
         // Convert the keyData from hex string to binary
@@ -40,6 +48,36 @@ spark::SpendKey createSpendKeyFromData(const char *keyData, int index) {
         // We can't return here, so just throw the exception again.
         throw e;
     }
+}
+
+/*
+ * Utility function to convert a C CCoin struct to a C++ Coin struct.
+ */
+spark::Coin convertToCppStruct(const CCoin& c_struct) {
+	spark::Coin cpp_struct(
+		spark::Params::get_default(),
+		c_struct.type,
+		spark::Scalar(c_struct.k),
+		// Next we need to construct an Address:
+		// c_struct.address is a const unsigned char*, which we need to cast to a spark::Address.
+		spark::Address(spark::IncomingViewKey(spark::FullViewKey(createSpendKeyFromData(c_struct.keyData, c_struct.index))), c_struct.index),
+		c_struct.v,
+		// c_struct.memo is a const unsigned char*, which we need to cast to a std:string&.
+		std::string(reinterpret_cast<const char*>(c_struct.memo), c_struct.memoLength),
+		// Finally, we need to combine c_struct.serial_context and c_struct.serial_contextLength
+		// into a std::vector<unsigned char>&.
+		// std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_contextLength)
+		// The above line throws:
+		//	error: invalid conversion from ‘const unsigned char*’ to ‘std::vector<unsigned char>::size_type’ {aka ‘long unsigned int’} [-fpermissive]
+		//	69 |   std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_contextLength)
+		//	|                              ~~~~~~~~~^~~~~~~~~~~~~~
+		//											 |                                       |
+		//											 |                                       const unsigned char*
+		// So we'll do it differently like:
+		std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_context + c_struct.serial_contextLength)
+	);
+
+	return cpp_struct;
 }
 
 unsigned char *hex2bin(const char *hexstr) {
