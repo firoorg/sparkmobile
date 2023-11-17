@@ -18,56 +18,6 @@
 using namespace spark;
 
 /*
- * FFI-friendly wrapper for spark::createSpendKeyFromData.
- *
- * TODO: serialize to an FFI-friendly format.
-EXPORT_DART
-const char* createFullViewKey(const char* keyData, int index) {
-    try {
-        spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
-        spark::FullViewKey fullViewKey(spendKey);
-
-        // Serialize the FullViewKey.
-        std::string serializedKey = serializeFullViewKey(fullViewKey); // TODO.
-
-        // Cast the string to an FFI-friendly char*.
-        char* result = new char[serializedKey.size() + 1];
-        std::copy(serializedKey.begin(), serializedKey.end(), result);
-        result[serializedKey.size()] = '\0'; // Null-terminate the C string.
-
-        return result;
-    } catch (const std::exception& e) {
-        return nullptr;
-    }
-}
-
-/*
- * FFI-friendly wrapper for spark::createSpendKeyFromData.
- *
- * TODO: serialize to an FFI-friendly format.
-EXPORT_DART
-const char* createIncomingViewKey(const char* keyData, int index) {
-    try {
-        spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
-        spark::FullViewKey fullViewKey(spendKey);
-        spark::IncomingViewKey incomingViewKey(fullViewKey);
-
-        // Serialize the FullViewKey.
-        std::string serializedKey = serializeIncomingViewKey(incomingViewKey); // TODO.
-
-        // Cast the string to an FFI-friendly char*.
-        char* result = new char[serializedKey.size() + 1];
-        std::copy(serializedKey.begin(), serializedKey.end(), result);
-        result[serializedKey.size()] = '\0'; // Null-terminate the C string.
-
-        return result;
-    } catch (const std::exception& e) {
-        return nullptr;
-    }
-}
-*/
-
-/*
  * FFI-friendly wrapper for spark:getAddress.
  */
 EXPORT_DART
