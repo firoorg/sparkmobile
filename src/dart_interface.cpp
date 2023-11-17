@@ -4,9 +4,11 @@
 #include <cstring>
 #include <iostream> // Just for printing.
 
-#define EXPORT_DART extern "C" __attribute__((visibility("default"))) __attribute__((used))
-#ifdef _WIN32
-    #define EXPORT_DART extern "C" __declspec(dllexport)
+#ifndef EXPORT_DART
+    #define EXPORT_DART extern "C" __attribute__((visibility("default"))) __attribute__((used))
+    #ifdef _WIN32
+        #define EXPORT_DART extern "C" __declspec(dllexport)
+    #endif
 #endif
 
 using namespace spark;
