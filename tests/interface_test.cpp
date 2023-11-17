@@ -112,8 +112,8 @@ BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
     // Print some information comparing the CCoin and Coin.
     std::cout << "CCoin v: " << ccoin.v << std::endl;
     std::cout << "Coin  v: " << coin.v << std::endl;
-    std::cout << "CCoin serial_context: " << bin2hex(ccoin.serial_context, ccoin.serial_contextLength) << std::endl;
-    std::cout << "Coin  serial_context: " << bin2hex(coin.serial_context, coin.serial_context.size()) << std::endl;
+    std::cout << "CCoin serial_context: " << bytesToHex(ccoin.serial_context, ccoin.serial_contextLength) << std::endl;
+    std::cout << "Coin  serial_context: " << bytesToHex(coin.serial_context, coin.serial_context.size()) << std::endl;
 
     // Print a newline to the console.
     std::cout << std::endl;
@@ -143,8 +143,8 @@ BOOST_AUTO_TEST_CASE(CIdentifiedCoinData_toFFI_test) {
     // Print some information comparing the IdentifiedCoinData and CIdentifiedCoinData.
     std::cout << "IdentifiedCoinData  i: " << identifiedCoinData.i << std::endl;
     std::cout << "CIdentifiedCoinData i: " << cIdentifiedCoinData.i << std::endl;
-    std::cout << "IdentifiedCoinData  d: " << bin2hex(identifiedCoinData.d, identifiedCoinData.d.size()) << std::endl;
-    std::cout << "CIdentifiedCoinData d: " << bin2hex(cIdentifiedCoinData.d, cIdentifiedCoinData.dLength) << std::endl;
+    std::cout << "IdentifiedCoinData  d: " << bytesToHex(identifiedCoinData.d, identifiedCoinData.d.size()) << std::endl;
+    std::cout << "CIdentifiedCoinData d: " << bytesToHex(cIdentifiedCoinData.d, cIdentifiedCoinData.dLength) << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

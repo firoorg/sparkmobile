@@ -80,13 +80,13 @@ CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct);
 char const hexArray[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
 						   'e', 'f'};
 
-unsigned char *hex2bin(const char *str);
+unsigned char *hexToBytes(const char *str);
 
-const char *bin2hex(const unsigned char *bytes, int size);
+const char *bytesToHex(const unsigned char *bytes, int size);
 
-const char *bin2hex(const char *bytes, int size);
+const char *bytesToHex(const char *bytes, int size);
 
-const char *bin2hex(std::vector<unsigned char> bytes, int size);
+const char *bytesToHex(std::vector<unsigned char> bytes, int size);
 
 
 #endif //ORG_FIRO_SPARK_UTILS_H

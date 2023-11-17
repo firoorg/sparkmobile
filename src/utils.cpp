@@ -39,7 +39,7 @@ const char* getAddressFromData(const char* keyData, int index, const uint64_t di
 spark::SpendKey createSpendKeyFromData(const char *keyData, int index) {
     try {
         // Convert the keyData from hex string to binary
-        unsigned char* key_data_bin = hex2bin(keyData);
+        unsigned char* key_data_bin = hexToBytes(keyData);
 
         const SpendKeyData *data = new SpendKeyData(key_data_bin, index);
 
@@ -90,7 +90,7 @@ CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct) {
 	return c_struct;
 }
 
-unsigned char *hex2bin(const char *hexstr) {
+unsigned char *hexToBytes(const char *hexstr) {
 	size_t length = strlen(hexstr) / 2;
 	auto *chrs = (unsigned char *) malloc((length + 1) * sizeof(unsigned char));
 	for (size_t i = 0, j = 0; j < length; i += 2, j++) {
@@ -100,7 +100,7 @@ unsigned char *hex2bin(const char *hexstr) {
 	return chrs;
 }
 
-const char *bin2hex(const unsigned char *bytes, int size) {
+const char *bytesToHex(const unsigned char *bytes, int size) {
 	std::string str;
 	for (int i = 0; i < size; ++i) {
 		const unsigned char ch = bytes[i];
@@ -112,7 +112,7 @@ const char *bin2hex(const unsigned char *bytes, int size) {
 	return new_str;
 }
 
-const char *bin2hex(const char *bytes, int size) {
+const char *bytesToHex(const char *bytes, int size) {
 	std::string str;
 	for (int i = 0; i < size; ++i) {
 		const unsigned char ch = (const unsigned char) bytes[i];
@@ -124,7 +124,7 @@ const char *bin2hex(const char *bytes, int size) {
 	return new_str;
 }
 
-const char *bin2hex(std::vector<unsigned char> bytes, int size) {
+const char *bytesToHex(std::vector<unsigned char> bytes, int size) {
 	std::string str;
 	for (int i = 0; i < size; ++i) {
 		const unsigned char ch = bytes[i];
