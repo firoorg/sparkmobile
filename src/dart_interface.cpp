@@ -7,7 +7,7 @@
 #ifndef EXPORT_DART
     #ifdef __cplusplus
         #define EXPORT_DART extern "C" __attribute__((visibility("default"))) __attribute__((used))
-    #elif
+    #else
         #define EXPORT_DART __attribute__((visibility("default"))) __attribute__((used))
     #endif
     #ifdef _WIN32
