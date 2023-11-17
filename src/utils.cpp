@@ -55,25 +55,13 @@ spark::SpendKey createSpendKeyFromData(const char *keyData, int index) {
  */
 spark::Coin convertToCppStruct(const CCoin& c_struct) {
 	spark::Coin cpp_struct(
+		// The test params are only used for unit tests.
 		spark::Params::get_default(),
 		c_struct.type,
 		spark::Scalar(c_struct.k),
-		// Next we need to construct an Address:
-		// c_struct.address is a const unsigned char*, which we need to cast to a spark::Address.
 		spark::Address(spark::IncomingViewKey(spark::FullViewKey(createSpendKeyFromData(c_struct.keyData, c_struct.index))), c_struct.index),
 		c_struct.v,
-		// c_struct.memo is a const unsigned char*, which we need to cast to a std:string&.
 		std::string(reinterpret_cast<const char*>(c_struct.memo), c_struct.memoLength),
-		// Finally, we need to combine c_struct.serial_context and c_struct.serial_contextLength
-		// into a std::vector<unsigned char>&.
-		// std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_contextLength)
-		// The above line throws:
-		//	error: invalid conversion from ‘const unsigned char*’ to ‘std::vector<unsigned char>::size_type’ {aka ‘long unsigned int’} [-fpermissive]
-		//	69 |   std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_contextLength)
-		//	|                              ~~~~~~~~~^~~~~~~~~~~~~~
-		//											 |                                       |
-		//											 |                                       const unsigned char*
-		// So we'll do it differently like:
 		std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_context + c_struct.serial_contextLength)
 	);
 
