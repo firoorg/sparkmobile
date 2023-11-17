@@ -51,9 +51,9 @@ spark::SpendKey createSpendKeyFromData(const char *keyData, int index) {
 }
 
 /*
- * Utility function to convert a C CCoin struct to a C++ Coin struct.
+ * Utility function to convert an FFI-friendly C CCoin struct to a C++ Coin struct.
  */
-spark::Coin convertToCppStruct(const CCoin& c_struct) {
+spark::Coin fromFFI(const CCoin& c_struct) {
 	spark::Coin cpp_struct(
 		// The test params are only used for unit tests.
 		spark::Params::get_default(),
@@ -66,6 +66,28 @@ spark::Coin convertToCppStruct(const CCoin& c_struct) {
 	);
 
 	return cpp_struct;
+}
+
+/*
+ * Utility function to convert a C++ IdentifiedCoinData struct to an FFI-friendly struct.
+ */
+CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct) {
+	CIdentifiedCoinData c_struct;
+
+	c_struct.i = cpp_struct.i;
+	c_struct.d = cpp_struct.d.data();
+	c_struct.dLength = cpp_struct.d.size();
+	c_struct.v = cpp_struct.v;
+
+	// Get the unsigned char* from the Scalar k using Scalar::serialize.
+	std::vector<unsigned char> scalarBytes(32); // Scalar is typically 32 bytes.
+	cpp_struct.k.serialize(scalarBytes.data());
+
+	c_struct.k = scalarBytes.data();
+	c_struct.memo = cpp_struct.memo.c_str();
+	c_struct.memoLength = cpp_struct.memo.size();
+
+	return c_struct;
 }
 
 unsigned char *hex2bin(const char *hexstr) {

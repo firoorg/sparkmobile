@@ -58,9 +58,9 @@ private:
 	}
 };
 
-spark::Coin convertToCppStruct(const CCoin& c_struct);
+spark::Coin fromFFI(const CCoin& c_struct);
 
-CCoin convertToCStruct(const spark::Coin& cpp_struct);
+CCoin toFFI(const spark::Coin& cpp_struct);
 
 struct CIdentifiedCoinData {
 	uint64_t i;
@@ -73,9 +73,9 @@ struct CIdentifiedCoinData {
 	int memoLength;
 };
 
-spark::IdentifiedCoinData convertToCppStruct(const CIdentifiedCoinData& c_struct);
+spark::IdentifiedCoinData fromFFI(const CIdentifiedCoinData& c_struct);
 
-CIdentifiedCoinData convertToCStruct(const spark::IdentifiedCoinData& cpp_struct);
+CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct);
 
 char const hexArray[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
 						   'e', 'f'};

@@ -65,9 +65,9 @@ BOOST_AUTO_TEST_CASE(getAddress_test) {
 }
 
 /*
- * Debug function to develop a CCoin->Coin convertToCppStruct.
+ * Debug function to develop a CCoin->Coin fromFFI (formerly convertToCppStruct).
  */
-BOOST_AUTO_TEST_CASE(convertToCppStruct_test) {
+BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
     const char* keyDataHex = "0000000000000000000000000000000000000000000000000000000000000000"; // Example key data in hex.
     int index = 1;
     // int diversifier = 0;
@@ -97,10 +97,8 @@ BOOST_AUTO_TEST_CASE(convertToCppStruct_test) {
     reinterpret_cast<const unsigned char*>(memo.c_str()), memo.size(),
     serial_context.data(), serial_context.size());
 
-    // Convert the coin to a C++ Coin struct.
-    //
-    // Use convertToCppStruct from utils.
-    Coin coin = convertToCppStruct(ccoin);
+    // Convert the C coin fromFFI to a C++ Coin struct.
+    Coin coin = fromFFI(ccoin);
 
     // Compare the coins.
     BOOST_CHECK_EQUAL(coin.type, ccoin.type);
@@ -109,16 +107,44 @@ BOOST_AUTO_TEST_CASE(convertToCppStruct_test) {
     // Can't check many more fields because they're private.
 
     // Print a message that convertToCppStruct debugging messages will follow.
-    std::cout << "convertToCppStruct debugging messages:" << std::endl;
+    std::cout << "CCoin->Coin fromFFI debugging messages:" << std::endl;
 
     // Print some information comparing the CCoin and Coin.
     std::cout << "CCoin v: " << ccoin.v << std::endl;
-    std::cout << "Coin v: " << coin.v << std::endl;
+    std::cout << "Coin  v: " << coin.v << std::endl;
     std::cout << "CCoin serial_context: " << bin2hex(ccoin.serial_context, ccoin.serial_contextLength) << std::endl;
-    std::cout << "Coin serial_context: " << bin2hex(coin.serial_context, coin.serial_context.size()) << std::endl;
+    std::cout << "Coin  serial_context: " << bin2hex(coin.serial_context, coin.serial_context.size()) << std::endl;
 
     // Print a newline to the console.
     std::cout << std::endl;
+}
+
+/*
+ * Debug function to develop a IdentifiedCoinData->CIdentifiedCoinData toFFI (formerly convertToCStruct).
+ */
+BOOST_AUTO_TEST_CASE(CIdentifiedCoinData_toFFI_test) {
+    // Make a dummy IdentifiedCoinData.
+    IdentifiedCoinData identifiedCoinData;
+    identifiedCoinData.i = 1;
+    identifiedCoinData.d = {1, 2, 3, 4, 5, 6, 7, 8};
+    identifiedCoinData.v = 123;
+    identifiedCoinData.k = Scalar(123);
+    identifiedCoinData.memo = "Foo";
+
+    // Convert the IdentifiedCoinData to a CIdentifiedCoinData.
+    CIdentifiedCoinData cIdentifiedCoinData = toFFI(identifiedCoinData);
+
+    // Compare the two structs.
+    BOOST_CHECK_EQUAL(cIdentifiedCoinData.i, identifiedCoinData.i);
+
+    // Print a message that convertToCStruct debugging messages will follow.
+    std::cout << "convertToCStruct debugging messages:" << std::endl;
+
+    // Print some information comparing the IdentifiedCoinData and CIdentifiedCoinData.
+    std::cout << "IdentifiedCoinData  i: " << identifiedCoinData.i << std::endl;
+    std::cout << "CIdentifiedCoinData i: " << cIdentifiedCoinData.i << std::endl;
+    std::cout << "IdentifiedCoinData  d: " << bin2hex(identifiedCoinData.d, identifiedCoinData.d.size()) << std::endl;
+    std::cout << "CIdentifiedCoinData d: " << bin2hex(cIdentifiedCoinData.d, cIdentifiedCoinData.dLength) << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()
