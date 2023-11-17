@@ -1,6 +1,8 @@
 #ifndef ORG_FIRO_SPARK_DART_INTERFACE_H
 #define ORG_FIRO_SPARK_DART_INTERFACE_H
 
+#include <stdint.h>
+
 #ifndef EXPORT_DART
     #ifdef __cplusplus
         #define EXPORT_DART extern "C" __attribute__((visibility("default"))) __attribute__((used))
@@ -48,6 +50,6 @@ struct CIdentifiedCoinData {
 };
 
 EXPORT_DART
-CIdentifiedCoinData identifyCoin(const CCoin& c_struct, const char* keyDataHex, int index);
+struct CIdentifiedCoinData identifyCoin(const struct CCoin c_struct, const char* keyDataHex, int index);
 
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H
