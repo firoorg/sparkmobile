@@ -2,9 +2,10 @@
 #define ORG_FIRO_SPARK_DART_INTERFACE_H
 
 #ifndef EXPORT_DART
-    #define EXPORT_DART __attribute__((visibility("default"))) __attribute__((used))
     #ifdef __cplusplus
         #define EXPORT_DART extern "C" __attribute__((visibility("default"))) __attribute__((used))
+    #elif
+        #define EXPORT_DART __attribute__((visibility("default"))) __attribute__((used))
     #endif
     #ifdef _WIN32
         #define EXPORT_DART __declspec(dllexport)
