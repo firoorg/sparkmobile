@@ -30,7 +30,7 @@ class SparkTest {};
 BOOST_FIXTURE_TEST_SUITE(spark_address_tests, SparkTest)
 
 /*
- * Test the correctness of the getAddress function.
+ * Test the correctness of the getAddress wrapper.
  */
 BOOST_AUTO_TEST_CASE(getAddress_test) {
     const char* keyDataHex = "0000000000000000000000000000000000000000000000000000000000000000"; // Example key data in hex.
@@ -71,16 +71,6 @@ BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
     const char* keyDataHex = "0000000000000000000000000000000000000000000000000000000000000000"; // Example key data in hex.
     int index = 1;
     // int diversifier = 0;
-
-    // Derive a SpendKey spendKey from the keyDataHex and index.
-    // SpendKey spendKey = createSpendKeyFromData(keyDataHex, index);
-
-    // Get the SpendKey Scalar k.
-    // const Params* params;
-    // params = Params::get_default();
-    // FullViewKey fullViewKey(spendKey);
-    // IncomingViewKey incomingViewKey(fullViewKey);
-    // Address address(incomingViewKey, static_cast<uint64_t>(diversifier));
 
     // Generate a random nonce k:
     Scalar k;
@@ -147,6 +137,52 @@ BOOST_AUTO_TEST_CASE(CIdentifiedCoinData_toFFI_test) {
     std::cout << "CIdentifiedCoinData d: " << bytesToHex(cIdentifiedCoinData.d, cIdentifiedCoinData.dLength) << std::endl;
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+/*
+ * Test the correctness of the identifyCoin wrapper.
+ */
+BOOST_AUTO_TEST_CASE(identifyCoin_test) {
+    // Make a dummy CCoin.
+    const char* keyDataHex = "0000000000000000000000000000000000000000000000000000000000000000"; // Example key data in hex.
+    int index = 1;
 
+    // Derive a SpendKey spendKey from the keyDataHex and index.
+    SpendKey spendKey = createSpendKeyFromData(keyDataHex, index);
+
+    // Get an IncomingViewKey from the SpendKey.
+    FullViewKey fullViewKey(spendKey);
+    IncomingViewKey incomingViewKey(fullViewKey);
+
+    // Construct a CCoin.
+    std::string memo = "Foo";
+    uint64_t v = 123; // arbitrary value
+    std::vector<unsigned char> serial_context = {0, 1, 2, 3, 4, 5, 6, 7};
+
+    // Make a dummy nonce (Scalar k).
+    Scalar k;
+    k.randomize();
+
+    // Get the unsigned char* from the Scalar k using Scalar::serialize.
+    std::vector<unsigned char> scalarBytes(32); // Scalar is typically 32 bytes.
+    k.serialize(scalarBytes.data());
+
+    CCoin ccoin(COIN_TYPE_MINT, scalarBytes.data(), scalarBytes.size(), keyDataHex, index, v,
+    reinterpret_cast<const unsigned char*>(memo.c_str()), memo.size(),
+    serial_context.data(), serial_context.size());
+
+    // Use the identifyCoin from Dart interface.
+    CIdentifiedCoinData identifiedCoinDataFromInterface = identifyCoin(ccoin, keyDataHex, index);
+
+    // Directly construct the IdentifiedCoinData using Spark library.
+    Coin coin = fromFFI(ccoin);
+    IdentifiedCoinData identifiedCoinData = coin.identify(incomingViewKey);
+
+    // Compare the two structs.
+    BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.i, identifiedCoinData.i);
+    BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.v, identifiedCoinData.v);
+    // BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.k, identifiedCoinData.k.serialize().data());
+    // BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memo, identifiedCoinData.memo.c_str());
+    BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memoLength, identifiedCoinData.memo.size());
+}
+
+BOOST_AUTO_TEST_SUITE_END()
 }
