@@ -45,55 +45,24 @@ const char* getAddress(const char* keyDataHex, int index, int diversifier, int i
 }
 
 /*
- * The CCoin struct is a C struct that contains the parameters for a Coin.  We accept these params
- * as a C struct, deriving the key from keyData and an index.
+ * CCoin factory.
+ *
+ * TODO manage the memory allocated by this function.
  */
-struct CCoin {
-    const char type;
-    const unsigned char* k;
-    int kLength;
-    const char* keyData;
-    int index;
-    uint64_t v;
-    const unsigned char* memo;
-    int memoLength;
-    const unsigned char* serial_context;
-    int serial_contextLength;
-
-    // Constructor
-    CCoin(char type,
-          const unsigned char* k, int kLength,
-          const char* keyData,
-          int index,
-          uint64_t v,
-          const unsigned char* memo, int memoLength,
-          const unsigned char* serial_context, int serial_contextLength)
-            : type(type),
-              k(copyBytes(k, kLength)), kLength(kLength),
-              keyData(strdup(keyData)),
-              index(index),
-              v(v),
-              memo(copyBytes(memo, memoLength)), memoLength(memoLength),
-              serial_context(copyBytes(serial_context, serial_contextLength)),
-              serial_contextLength(serial_contextLength) {}
-
-    // Destructor
-    ~CCoin() {
-        delete[] k;
-        delete[] keyData;
-        delete[] memo;
-        delete[] serial_context;
-    }
-
-private:
-    // Helper function for deep copying byte arrays
-    static unsigned char* copyBytes(const unsigned char* source, int length) {
-        if (source == nullptr) return nullptr;
-        unsigned char* dest = new unsigned char[length];
-        std::memcpy(dest, source, length);
-        return dest;
-    }
-};
+CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength) {
+    CCoin coin;
+    coin.type = type;
+    coin.k = copyBytes(k, kLength);
+    coin.kLength = kLength;
+    coin.keyData = strdup(keyData);
+    coin.index = index;
+    coin.v = v;
+    coin.memo = copyBytes(memo, memoLength);
+    coin.memoLength = memoLength;
+    coin.serial_context = copyBytes(serial_context, serial_contextLength);
+    coin.serial_contextLength = serial_contextLength;
+    return coin;
+}
 
 /*
  * FFI-friendly wrapper for spark:identifyCoin.
@@ -106,7 +75,7 @@ private:
  * We also need the incoming view key or we need to derive it, so accept keyDataHex and index.
  */
 EXPORT_DART
-CIdentifiedCoinData identifyCoin(const struct CCoin& c_struct, const char* keyDataHex, int index) {
+struct CIdentifiedCoinData identifyCoin(const struct CCoin& c_struct, const char* keyDataHex, int index) {
     try {
         spark::Coin coin = fromFFI(c_struct);
 

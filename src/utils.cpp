@@ -90,6 +90,18 @@ CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct) {
 	return c_struct;
 }
 
+/*
+ * Utility function for deep copying byte arrays.
+ *
+ * Used by createCCoin.
+ */
+unsigned char* copyBytes(const unsigned char* source, int length) {
+	if (source == nullptr) return nullptr;
+	unsigned char* dest = new unsigned char[length];
+	std::memcpy(dest, source, length);
+	return dest;
+}
+
 unsigned char *hexToBytes(const char *hexstr) {
 	size_t length = strlen(hexstr) / 2;
 	auto *chrs = (unsigned char *) malloc((length + 1) * sizeof(unsigned char));

@@ -13,6 +13,7 @@
 #include "../src/keys.h"
 #include "../src/dart_interface.h"
 #include "../src/utils.h"
+#include "../src/coin.h" // For COIN_TYPE_MINT etc.
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
@@ -72,10 +73,9 @@ BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
     int index = 1;
     // int diversifier = 0;
 
-    // Generate a random nonce k:
+    // Generate a random nonce k and serialize it to byte array.
     Scalar k;
     k.randomize();
-    // Serialize Scalar k to byte array.
     std::vector<unsigned char> kBytes(32); // Scalar is typically 32 bytes.
     k.serialize(kBytes.data());
 
@@ -83,9 +83,18 @@ BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
     std::string memo = "Foo";
     uint64_t v = 123; // arbitrary value
     std::vector<unsigned char> serial_context = {0, 1, 2, 3, 4, 5, 6, 7};
-    CCoin ccoin(COIN_TYPE_MINT, kBytes.data(), kBytes.size(), keyDataHex, index, v,
-    reinterpret_cast<const unsigned char*>(memo.c_str()), memo.size(),
-    serial_context.data(), serial_context.size());
+    CCoin ccoin = createCCoin(
+        COIN_TYPE_MINT,
+        kBytes.data(),
+        static_cast<int>(kBytes.size()),
+        keyDataHex,
+        index,
+        v,
+        reinterpret_cast<const unsigned char*>(memo.c_str()),
+        static_cast<int>(memo.size()),
+        serial_context.data(),
+        static_cast<int>(serial_context.size())
+    );
 
     // Convert the C coin fromFFI to a C++ Coin struct.
     Coin coin = fromFFI(ccoin);
@@ -160,14 +169,20 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     // Make a dummy nonce (Scalar k).
     Scalar k;
     k.randomize();
-
-    // Get the unsigned char* from the Scalar k using Scalar::serialize.
     std::vector<unsigned char> scalarBytes(32); // Scalar is typically 32 bytes.
     k.serialize(scalarBytes.data());
-
-    CCoin ccoin(COIN_TYPE_MINT, scalarBytes.data(), scalarBytes.size(), keyDataHex, index, v,
-    reinterpret_cast<const unsigned char*>(memo.c_str()), memo.size(),
-    serial_context.data(), serial_context.size());
+    CCoin ccoin = createCCoin(
+        COIN_TYPE_MINT,
+        scalarBytes.data(),
+        static_cast<int>(scalarBytes.size()),
+        keyDataHex,
+        index,
+        v,
+        reinterpret_cast<const unsigned char*>(memo.c_str()),
+        static_cast<int>(memo.size()),
+        serial_context.data(),
+        static_cast<int>(serial_context.size())
+    );
 
     // Use the identifyCoin from Dart interface.
     CIdentifiedCoinData identifiedCoinDataFromInterface = identifyCoin(ccoin, keyDataHex, index);

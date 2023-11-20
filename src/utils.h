@@ -23,6 +23,8 @@ CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct);
 char const hexArray[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
 						   'e', 'f'};
 
+unsigned char* copyBytes(const unsigned char* source, int length);
+
 unsigned char *hexToBytes(const char *str);
 
 const char *bytesToHex(const unsigned char *bytes, int size);
