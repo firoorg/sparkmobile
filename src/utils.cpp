@@ -130,6 +130,13 @@ CScript createCScriptFromBytes(const unsigned char* bytes, int length) {
 }
 
 /*
+ * Utility function to convert a C++ CScript to a byte array.
+ */
+std::vector<unsigned char> serializeCScript(const CScript& script) {
+	return std::vector<unsigned char>(script.begin(), script.end());
+}
+
+/*
  * Utility function to convert an FFI-friendly C CCRecipient struct to a C++ CRecipient struct.
  */
 CRecipient fromFFI(const CCRecipient& c_struct) {
@@ -146,34 +153,6 @@ CRecipient fromFFI(const CCRecipient& c_struct) {
 }
 
 /*
- * Utility function to convert a C++ CScript to a byte array.
- */
-std::vector<unsigned char> serializeCScript(const CScript& script) {
-	return std::vector<unsigned char>(script.begin(), script.end());
-}
-
-/*
- * Utility function to convert a C++ CRecipient struct to an FFI-friendly struct.
- */
-CCRecipient toFFI(const CRecipient& cpp_struct) {
-	CCRecipient c_struct;
-	auto scriptBytes = serializeCScript(cpp_struct.pubKey);
-	c_struct.pubKey = copyBytes(scriptBytes.data(), scriptBytes.size());
-
-	return c_struct;
-}
-
-/*
- * CRecipient factory.
- *
- * TODO manage the memory allocated by this function.
- */
-CRecipient createCRecipient(const CScript& script, CAmount amount, bool subtractFee) {
-	// Assuming CRecipient has a constructor that takes these parameters
-	return CRecipient(script, amount, subtractFee);
-}
-
-/*
  * CCRecipient factory.
  *
  * TODO manage the memory allocated by this function.
@@ -186,6 +165,31 @@ struct CCRecipient createCCRecipient(const unsigned char* pubKey, uint64_t amoun
 	return recipient;
 }
 
+/*
+ * Utility function to convert a C++ CRecipient struct to an FFI-friendly struct.
+ */
+CCRecipient toFFI(const CRecipient& cpp_struct) {
+	CCRecipient c_struct;
+	auto scriptBytes = serializeCScript(cpp_struct.pubKey);
+	c_struct.pubKey = copyBytes(scriptBytes.data(), scriptBytes.size());
+	c_struct.pubKeyLength = scriptBytes.size();
+	c_struct.cAmount = cpp_struct.amount;
+	c_struct.subtractFee = static_cast<int>(cpp_struct.subtractFeeFromAmount);
+	return c_struct;
+}
+
+/*
+ * CRecipient factory.
+ *
+ * TODO manage the memory allocated by this function.
+ */
+CRecipient createCRecipient(const CScript& script, CAmount amount, bool subtractFee) {
+	CRecipient recipient;
+	recipient.pubKey = script;
+	recipient.amount = amount;
+	recipient.subtractFeeFromAmount = subtractFee;
+	return recipient;
+}
 
 /*
  * Utility function for deep copying byte arrays.
