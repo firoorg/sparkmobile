@@ -91,6 +91,33 @@ CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct) {
 }
 
 /*
+ * Utility function to convert an FFI-friendly C CCRecipient struct to a C++ CRecipient struct.
+ */
+CRecipient fromFFI(const CCRecipient& c_struct) {
+    spark::Recipient cpp_struct(
+            spark::Scalar(c_struct.k),
+            spark::Address(spark::IncomingViewKey(spark::FullViewKey(createSpendKeyFromData(c_struct.keyData, c_struct.index))), c_struct.index)
+    );
+
+    return cpp_struct;
+}
+
+/*
+ * Utility function to convert a C++ CRecipient struct to an FFI-friendly struct.
+ */
+CCRecipient toFFI(const CRecipient& cpp_struct) {
+    CCRecipient c_struct;
+
+    // Get the unsigned char* from the Scalar k using Scalar::serialize.
+    std::vector<unsigned char> scalarBytes(32); // Scalar is typically 32 bytes.
+    cpp_struct.k.serialize(scalarBytes.data());
+
+    c_struct.k = scalarBytes.data();
+
+    return c_struct;
+}
+
+/*
  * Utility function for deep copying byte arrays.
  *
  * Used by createCCoin.

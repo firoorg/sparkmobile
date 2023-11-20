@@ -72,4 +72,16 @@ struct CIdentifiedCoinData {
 EXPORT_DART
 struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDataHex, int index);
 
+/*
+ * A CRecipient is a CScript, CAmount, and a bool.  We accept a C-style, FFI-friendly CCRecipient
+ * struct in order to construct a C++ CRecipient.  A CScript is constructed from a hex string, a
+ * CAmount is just a uint64_t, and the bool will be an int.
+ */
+struct CCRecipient {
+    const unsigned char* cScript;
+    int cScriptLength;
+    uint64_t cAmount;
+    int subtractFee;
+};
+
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H

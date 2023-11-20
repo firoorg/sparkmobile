@@ -199,5 +199,46 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memoLength, identifiedCoinData.memo.size());
 }
 
+/*
+ * Debug function to develop a CCRecipient->CRecipient fromFFI function.
+ *
+ * A CRecipient is a struct that contains a CScript, CAmount, and a bool (subtractFee).  We accept
+ * these as a CCRecipient from the Dart interface, and convert them to a CRecipient struct.
+ *
+ * This function just tests and compares a CRecipient generated via built-in methods to a CRecipient
+ * constructed via fromFFI.  First, we'll make dummy CScript, CAmount, and bool values, and then
+ * construct a CRecipient from them.  We'll construct a CCRicipient using the same values, derive a
+ * CRecipient fromFFI, and compare the two structs.
+ */
+BOOST_AUTO_TEST_CASE(CRecipient_fromFFI_test) {
+    // Make a dummy CScript.
+    std::vector<unsigned char> scriptBytes = {0, 1, 2, 3, 4, 5, 6, 7};
+    CScript cscript(scriptBytes.data(), scriptBytes.size());
+
+    // Make a dummy CAmount.
+    CAmount camount = 123;
+
+    // Make a dummy bool.
+    bool subtractFee = true;
+
+    // Construct the dummy CRecipient.
+    CRecipient crecipient(cscript, camount, subtractFee);
+
+    // Construct the dummy CCRecipient.
+    CCRecipient ccrecipient;
+    ccrecipient.cScript = scriptBytes.data();
+    ccrecipient.cScriptLength = scriptBytes.size();
+    ccrecipient.cAmount = camount;
+    ccrecipient.subtractFee = subtractFee;
+
+    // Convert the CCRecipient fromFFI to a CRecipient.
+    CRecipient recipient = fromFFI(ccrecipient);
+
+    // Compare the two structs.
+    BOOST_CHECK_EQUAL(recipient.cScript, crecipient.cScript);
+    // BOOST_CHECK_EQUAL(recipient.cScriptLength, crecipient.cScriptLength);
+    BOOST_CHECK_EQUAL(recipient.cAmount, crecipient.cAmount);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 }
