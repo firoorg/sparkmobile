@@ -44,6 +44,10 @@ const char* getAddress(const char* keyDataHex, int index, int diversifier, int i
     }
 }
 
+/*
+ * The CCoin struct is a C struct that contains the parameters for a Coin.  We accept these params
+ * as a C struct, deriving the key from keyData and an index.
+ */
 struct CCoin {
     const char type;
     const unsigned char* k;

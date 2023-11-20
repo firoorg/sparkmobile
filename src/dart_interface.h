@@ -14,6 +14,9 @@
     #endif
 #endif
 
+/*
+ * FFI-friendly wrapper for spark::getAddress.
+ */
 EXPORT_DART
 const char* getAddress(const char* keyDataHex, int index, int diversifier, int isTestNet);
 
@@ -25,6 +28,10 @@ EXPORT_DART
 const char* createIncomingViewKey(const char* keyData, int index);
 */
 
+/*
+ * A Coin is a type, a key, an index, a value, a memo, and a serial context.  We accept these params
+ * as a C struct, deriving the key from the keyData and index.
+ */
 struct CCoin {
     const char type;
     const unsigned char* k;
@@ -38,6 +45,10 @@ struct CCoin {
     int serial_contextLength;
 };
 
+/*
+ * An IdentifiedCoinData is a diversifier, encrypted diversifier, value, nonce, and memo.  We accept
+ * these params as a C struct.
+ */
 struct CIdentifiedCoinData {
     uint64_t i;
     const unsigned char* d;
@@ -49,6 +60,9 @@ struct CIdentifiedCoinData {
     int memoLength;
 };
 
+/*
+ * FFI-friendly wrapper for spark::identifyCoin.
+ */
 EXPORT_DART
 struct CIdentifiedCoinData identifyCoin(const struct CCoin c_struct, const char* keyDataHex, int index);
 
