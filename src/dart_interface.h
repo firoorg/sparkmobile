@@ -46,12 +46,6 @@ struct CCoin {
 };
 
 /*
- * CCoin factory.
- */
-EXPORT_DART
-struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength);
-
-/*
  * An IdentifiedCoinData is a diversifier, encrypted diversifier, value, nonce, and memo.  We accept
  * these params as a C struct.
  */
@@ -78,8 +72,8 @@ struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDa
  * CAmount is just a uint64_t, and the bool will be an int.
  */
 struct CCRecipient {
-    const unsigned char* cScript;
-    int cScriptLength;
+    const unsigned char* pubKey;
+    int pubKeyLength;
     uint64_t cAmount;
     int subtractFee;
 };

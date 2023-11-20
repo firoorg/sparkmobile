@@ -8,6 +8,7 @@
 #include "dart_interface.h"
 #include "coin.h"
 #include "keys.h"
+#include "../bitcoin/script.h"  // For CScript.
 
 /*
  * Utility function to generate an address from keyData, index, and a diversifier.
@@ -51,6 +52,26 @@ spark::SpendKey createSpendKeyFromData(const char *keyData, int index) {
 }
 
 /*
+ * CCoin factory.
+ *
+ * TODO manage the memory allocated by this function.
+ */
+struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength) {
+	CCoin coin;
+	coin.type = type;
+	coin.k = copyBytes(k, kLength);
+	coin.kLength = kLength;
+	coin.keyData = strdup(keyData);
+	coin.index = index;
+	coin.v = v;
+	coin.memo = copyBytes(memo, memoLength);
+	coin.memoLength = memoLength;
+	coin.serial_context = copyBytes(serial_context, serial_contextLength);
+	coin.serial_contextLength = serial_contextLength;
+	return coin;
+}
+
+/*
  * Utility function to convert an FFI-friendly C CCoin struct to a C++ Coin struct.
  */
 spark::Coin fromFFI(const CCoin& c_struct) {
@@ -91,31 +112,80 @@ CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct) {
 }
 
 /*
+ * Factory function to create a CScript from a byte array.
+ */
+CScript createCScriptFromBytes(const unsigned char* bytes, int length) {
+	// Construct a CScript object
+	CScript script;
+
+	// Check if bytes is not nullptr and length is positive
+	if (bytes != nullptr && length > 0) {
+		// Append each byte to the script
+		for (int i = 0; i < length; ++i) {
+			script << bytes[i];
+		}
+	}
+
+	return script;
+}
+
+/*
  * Utility function to convert an FFI-friendly C CCRecipient struct to a C++ CRecipient struct.
  */
 CRecipient fromFFI(const CCRecipient& c_struct) {
-    spark::Recipient cpp_struct(
-            spark::Scalar(c_struct.k),
-            spark::Address(spark::IncomingViewKey(spark::FullViewKey(createSpendKeyFromData(c_struct.keyData, c_struct.index))), c_struct.index)
-    );
+	// Use the factory function to create a CScript object.
+	CScript script = createCScriptFromBytes(c_struct.pubKey, c_struct.pubKeyLength);
+
+	CRecipient cpp_struct = createCRecipient(
+			script,
+			c_struct.cAmount,
+			static_cast<bool>(c_struct.subtractFee)
+	);
 
     return cpp_struct;
+}
+
+/*
+ * Utility function to convert a C++ CScript to a byte array.
+ */
+std::vector<unsigned char> serializeCScript(const CScript& script) {
+	return std::vector<unsigned char>(script.begin(), script.end());
 }
 
 /*
  * Utility function to convert a C++ CRecipient struct to an FFI-friendly struct.
  */
 CCRecipient toFFI(const CRecipient& cpp_struct) {
-    CCRecipient c_struct;
+	CCRecipient c_struct;
+	auto scriptBytes = serializeCScript(cpp_struct.pubKey);
+	c_struct.pubKey = copyBytes(scriptBytes.data(), scriptBytes.size());
 
-    // Get the unsigned char* from the Scalar k using Scalar::serialize.
-    std::vector<unsigned char> scalarBytes(32); // Scalar is typically 32 bytes.
-    cpp_struct.k.serialize(scalarBytes.data());
-
-    c_struct.k = scalarBytes.data();
-
-    return c_struct;
+	return c_struct;
 }
+
+/*
+ * CRecipient factory.
+ *
+ * TODO manage the memory allocated by this function.
+ */
+CRecipient createCRecipient(const CScript& script, CAmount amount, bool subtractFee) {
+	// Assuming CRecipient has a constructor that takes these parameters
+	return CRecipient(script, amount, subtractFee);
+}
+
+/*
+ * CCRecipient factory.
+ *
+ * TODO manage the memory allocated by this function.
+ */
+struct CCRecipient createCCRecipient(const unsigned char* pubKey, uint64_t amount, int subtractFee) {
+	CCRecipient recipient;
+	recipient.pubKey = copyBytes(pubKey, 32);
+	recipient.cAmount = amount;
+	recipient.subtractFee = subtractFee;
+	return recipient;
+}
+
 
 /*
  * Utility function for deep copying byte arrays.

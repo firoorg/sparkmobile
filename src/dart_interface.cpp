@@ -45,26 +45,6 @@ const char* getAddress(const char* keyDataHex, int index, int diversifier, int i
 }
 
 /*
- * CCoin factory.
- *
- * TODO manage the memory allocated by this function.
- */
-struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength) {
-    CCoin coin;
-    coin.type = type;
-    coin.k = copyBytes(k, kLength);
-    coin.kLength = kLength;
-    coin.keyData = strdup(keyData);
-    coin.index = index;
-    coin.v = v;
-    coin.memo = copyBytes(memo, memoLength);
-    coin.memoLength = memoLength;
-    coin.serial_context = copyBytes(serial_context, serial_contextLength);
-    coin.serial_contextLength = serial_contextLength;
-    return coin;
-}
-
-/*
  * FFI-friendly wrapper for spark:identifyCoin.
  *
  * Uses the utility functions spark::Coin fromFFI(const CCoin& c_struct) to pass parameters to the

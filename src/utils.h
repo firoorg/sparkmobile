@@ -16,6 +16,8 @@ spark::Coin fromFFI(const CCoin& c_struct);
 
 CCoin toFFI(const spark::Coin& cpp_struct);
 
+struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength);
+
 spark::IdentifiedCoinData fromFFI(const CIdentifiedCoinData& c_struct);
 
 CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct);
@@ -23,6 +25,10 @@ CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct);
 CRecipient fromFFI(const CCRecipient& c_struct);
 
 CCRecipient toFFI(const CRecipient& cpp_struct);
+
+CRecipient createCRecipient(const CScript& script, CAmount amount, bool subtractFee);
+
+struct CCRecipient createCCRecipient(const unsigned char* pubKey, uint64_t amount, int subtractFee);
 
 char const hexArray[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
 						   'e', 'f'};

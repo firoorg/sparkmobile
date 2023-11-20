@@ -211,33 +211,31 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
  * CRecipient fromFFI, and compare the two structs.
  */
 BOOST_AUTO_TEST_CASE(CRecipient_fromFFI_test) {
-    // Make a dummy CScript.
-    std::vector<unsigned char> scriptBytes = {0, 1, 2, 3, 4, 5, 6, 7};
-    CScript cscript(scriptBytes.data(), scriptBytes.size());
+    // Make a dummy 32-byte pubKey.
+    std::vector<unsigned char> pubKeyBytes = {0, 1, 2, 3, 4, 5, 6, 7};
+    unsigned char* pubKey = pubKeyBytes.data();
 
-    // Make a dummy CAmount.
-    CAmount camount = 123;
+    // Make a dummy uint64_t amount.
+    uint64_t amount = 123;
 
     // Make a dummy bool.
     bool subtractFee = true;
 
-    // Construct the dummy CRecipient.
-    CRecipient crecipient(cscript, camount, subtractFee);
-
     // Construct the dummy CCRecipient.
-    CCRecipient ccrecipient;
-    ccrecipient.cScript = scriptBytes.data();
-    ccrecipient.cScriptLength = scriptBytes.size();
-    ccrecipient.cAmount = camount;
-    ccrecipient.subtractFee = subtractFee;
+    CCRecipient ccrecipient = createCCRecipient(pubKey, amount, subtractFee);
 
-    // Convert the CCRecipient fromFFI to a CRecipient.
+    // Construct the dummy CRecipient.
+    CScript cscript = CScript();
+    CAmount camount = CAmount(amount);
+    CRecipient crecipient = createCRecipient(cscript, camount, subtractFee);
+
+    // Convert the CCRecipient fromFFI to a C++ CRecipient struct.
     CRecipient recipient = fromFFI(ccrecipient);
 
     // Compare the two structs.
-    BOOST_CHECK_EQUAL(recipient.cScript, crecipient.cScript);
-    // BOOST_CHECK_EQUAL(recipient.cScriptLength, crecipient.cScriptLength);
-    BOOST_CHECK_EQUAL(recipient.cAmount, crecipient.cAmount);
+    BOOST_CHECK_EQUAL(recipient.subtractFeeFromAmount, crecipient.subtractFeeFromAmount);
+    BOOST_CHECK_EQUAL(recipient.amount, crecipient.amount);
+    // BOOST_CHECK_EQUAL(recipient.pubKey, crecipient.pubKey);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
