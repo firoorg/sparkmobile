@@ -49,7 +49,7 @@ const char* getAddress(const char* keyDataHex, int index, int diversifier, int i
  *
  * TODO manage the memory allocated by this function.
  */
-CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength) {
+struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength) {
     CCoin coin;
     coin.type = type;
     coin.k = copyBytes(k, kLength);
@@ -75,7 +75,7 @@ CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* ke
  * We also need the incoming view key or we need to derive it, so accept keyDataHex and index.
  */
 EXPORT_DART
-struct CIdentifiedCoinData identifyCoin(const struct CCoin& c_struct, const char* keyDataHex, int index) {
+struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDataHex, int index) {
     try {
         spark::Coin coin = fromFFI(c_struct);
 

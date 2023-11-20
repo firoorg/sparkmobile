@@ -49,7 +49,7 @@ struct CCoin {
  * CCoin factory.
  */
 EXPORT_DART
-CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength);
+struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength);
 
 /*
  * An IdentifiedCoinData is a diversifier, encrypted diversifier, value, nonce, and memo.  We accept
@@ -70,6 +70,6 @@ struct CIdentifiedCoinData {
  * FFI-friendly wrapper for spark::identifyCoin.
  */
 EXPORT_DART
-struct CIdentifiedCoinData identifyCoin(const struct CCoin& c_struct, const char* keyDataHex, int index);
+struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDataHex, int index);
 
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H
