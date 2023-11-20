@@ -106,7 +106,7 @@ private:
  * We also need the incoming view key or we need to derive it, so accept keyDataHex and index.
  */
 EXPORT_DART
-CIdentifiedCoinData identifyCoin(const CCoin& c_struct, const char* keyDataHex, int index) {
+CIdentifiedCoinData identifyCoin(const struct CCoin& c_struct, const char* keyDataHex, int index) {
     try {
         spark::Coin coin = fromFFI(c_struct);
 
