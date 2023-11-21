@@ -217,6 +217,8 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
  * constructed via fromFFI.  First, we'll make dummy CScript, CAmount, and bool values, and then
  * construct a CRecipient from them.  We'll construct a CCRicipient using the same values, derive a
  * CRecipient fromFFI, and compare the two structs.
+ *
+ * TODO fix CRecipient pubKey (extra 2 prefix, 0 appendix).
  */
 BOOST_AUTO_TEST_CASE(CRecipient_fromFFI_test) {
     // Make a dummy 32-byte pubKey.
@@ -272,6 +274,8 @@ BOOST_AUTO_TEST_CASE(CRecipient_fromFFI_test) {
  * CCRecipient constructed via toFFI.  First, we'll make dummy CScript, CAmount, and bool values,
  * and then construct a CRecipient from them.  We'll construct a CCRicipient using the same values,
  * derive a CRecipient from toFFI, and compare the two structs.
+ *
+ * TODO fix CRecipient and CCRecipient pubKey.
  */
 BOOST_AUTO_TEST_CASE(CCRecipient_toFFI_test) {
     // Make a dummy 32-byte pubKey.
