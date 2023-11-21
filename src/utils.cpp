@@ -171,17 +171,22 @@ struct CCRecipient createCCRecipient(const unsigned char* pubKey, uint64_t amoun
  * Utility function to convert a C++ CRecipient struct to an FFI-friendly struct.
  */
 CCRecipient toFFI(const CRecipient& cpp_struct) {
-    CCRecipient c_struct;
+	CCRecipient c_struct;
 
-    // Serialize CScript and copy.
-    std::vector<unsigned char> scriptBytes = serializeCScript(cpp_struct.pubKey);
-    c_struct.pubKey = scriptBytes.empty() ? nullptr : copyBytes(scriptBytes.data(), scriptBytes.size());
-    c_struct.pubKeyLength = static_cast<int>(scriptBytes.size());
+	// Serialize CScript and copy.
+	std::vector<unsigned char> scriptBytes = serializeCScript(cpp_struct.pubKey);
+	if (!scriptBytes.empty()) {
+		c_struct.pubKey = copyBytes(scriptBytes.data(), scriptBytes.size());
+		c_struct.pubKeyLength = static_cast<int>(scriptBytes.size());
+	} else {
+		c_struct.pubKey = nullptr;
+		c_struct.pubKeyLength = 0;
+	}
 
-    c_struct.cAmount = cpp_struct.amount;
-    c_struct.subtractFee = static_cast<int>(cpp_struct.subtractFeeFromAmount);
+	c_struct.cAmount = cpp_struct.amount;
+	c_struct.subtractFee = static_cast<int>(cpp_struct.subtractFeeFromAmount);
 
-    return c_struct;
+	return c_struct;
 }
 
 /*
