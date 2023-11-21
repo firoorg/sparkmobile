@@ -96,16 +96,18 @@ CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct) {
 	CIdentifiedCoinData c_struct;
 
 	c_struct.i = cpp_struct.i;
-	c_struct.d = cpp_struct.d.data();
+	c_struct.d = copyBytes(cpp_struct.d.data(), cpp_struct.d.size());
 	c_struct.dLength = cpp_struct.d.size();
 	c_struct.v = cpp_struct.v;
 
-	// Get the unsigned char* from the Scalar k using Scalar::serialize.
-	std::vector<unsigned char> scalarBytes(32); // Scalar is typically 32 bytes.
+	// Serialize and copy the Scalar k
+	std::vector<unsigned char> scalarBytes(32);
 	cpp_struct.k.serialize(scalarBytes.data());
+	c_struct.k = copyBytes(scalarBytes.data(), scalarBytes.size());
+	c_struct.kLength = scalarBytes.size();
 
-	c_struct.k = scalarBytes.data();
-	c_struct.memo = cpp_struct.memo.c_str();
+	// Copy the memo
+	c_struct.memo = strdup(cpp_struct.memo.c_str());
 	c_struct.memoLength = cpp_struct.memo.size();
 
 	return c_struct;
