@@ -29,6 +29,8 @@ const char* createIncomingViewKey(const char* keyData, int index);
 */
 
 /*
+ * FFI-friendly wrapper for a spark::Coin.
+ *
  * A Coin is a type, a key, an index, a value, a memo, and a serial context.  We accept these params
  * as a C struct, deriving the key from the keyData and index.
  */
@@ -46,6 +48,8 @@ struct CCoin {
 };
 
 /*
+ * FFI-friendly wrapper for a spark::IdentifiedCoinData.
+ *
  * An IdentifiedCoinData is a diversifier, encrypted diversifier, value, nonce, and memo.  We accept
  * these params as a C struct.
  */
@@ -67,6 +71,8 @@ EXPORT_DART
 struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDataHex, int index);
 
 /*
+ * FFI-friendly wrapper for a spark::CRecipient.
+ *
  * A CRecipient is a CScript, CAmount, and a bool.  We accept a C-style, FFI-friendly CCRecipient
  * struct in order to construct a C++ CRecipient.  A CScript is constructed from a hex string, a
  * CAmount is just a uint64_t, and the bool will be an int.
