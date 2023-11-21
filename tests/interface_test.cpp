@@ -197,6 +197,30 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     // BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.k, identifiedCoinData.k.serialize().data());
     // BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memo, identifiedCoinData.memo.c_str());
     BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memoLength, identifiedCoinData.memo.size());
+
+    // Print a newline then a message that identifyCoin debugging messages will follow.
+    std::cout << std::endl;
+    std::cout << "identifyCoin debugging messages:" << std::endl;
+
+    // Output the addresses for debugging.
+    std::cout << "IdentifiedCoinData from Interface: " << std::endl;
+    std::cout << "  i: " << identifiedCoinDataFromInterface.i << std::endl;
+    std::cout << "  v: " << identifiedCoinDataFromInterface.v << std::endl;
+
+    // Serialize the Scalar k for both identifiedCoinData.
+    unsigned char serializedK[32]; // Assuming Scalar is 32 bytes
+    identifiedCoinData.k.serialize(serializedK);
+    std::cout << "  k: " << bytesToHex(serializedK, 32) << std::endl;
+
+    std::cout << "  memo: " << identifiedCoinDataFromInterface.memo << std::endl;
+    std::cout << "  memoLength: " << identifiedCoinDataFromInterface.memoLength << std::endl;
+    std::cout << "IdentifiedCoinData directly constructed: " << std::endl;
+    std::cout << "  i: " << identifiedCoinData.i << std::endl;
+    std::cout << "  v: " << identifiedCoinData.v << std::endl;
+    std::cout << "  k: " << bytesToHex(identifiedCoinDataFromInterface.k, 32) << std::endl;
+    std::cout << "  memo: " << identifiedCoinData.memo << std::endl;
+    std::cout << "  memoLength: " << identifiedCoinData.memo.size() << std::endl;
+    std::cout << std::endl; // Newline.
 }
 
 /*
@@ -236,6 +260,22 @@ BOOST_AUTO_TEST_CASE(CRecipient_fromFFI_test) {
     BOOST_CHECK_EQUAL(recipient.subtractFeeFromAmount, crecipient.subtractFeeFromAmount);
     BOOST_CHECK_EQUAL(recipient.amount, crecipient.amount);
     // BOOST_CHECK_EQUAL(recipient.pubKey, crecipient.pubKey);
+
+    // Print a message that convertToCppStruct debugging messages will follow.
+    std::cout << "CCRecipient->CRecipient fromFFI debugging messages:" << std::endl;
+
+    // Print some information comparing the CCRecipient and CRecipient.
+    std::cout << "CCRecipient subtractFeeFromAmount: " << ccrecipient.subtractFee << std::endl;
+    std::cout << "CRecipient  subtractFeeFromAmount: " << crecipient.subtractFeeFromAmount << std::endl;
+    std::cout << "CCRecipient amount: " << ccrecipient.cAmount << std::endl;
+    std::cout << "CRecipient  amount: " << crecipient.amount << std::endl;
+    std::cout << "CCRecipient pubKey: " << bytesToHex(ccrecipient.pubKey, 32) << std::endl;
+
+    // Serializing CScript object to a byte array
+    std::vector<unsigned char> serializedPubKey = serializeCScript(crecipient.pubKey);
+
+    // Convert the serialized byte array to hex string
+    std::cout << "CRecipient  pubKey: " << bytesToHex(serializedPubKey.data(), serializedPubKey.size()) << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()
