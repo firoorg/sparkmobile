@@ -278,5 +278,44 @@ BOOST_AUTO_TEST_CASE(CRecipient_fromFFI_test) {
     std::cout << "CRecipient  pubKey: " << bytesToHex(serializedPubKey.data(), serializedPubKey.size()) << std::endl;
 }
 
+/*
+ * Debug function to develop a CRecipient->CCRecipient toFFI function.
+ *
+ * A CRecipient is a struct that contains a CScript, CAmount, and a bool (subtractFee).  We accept
+ * these as a CRecipient from the C++ interface, and convert them to a CCRecipient struct for the
+ * Dart FFI layer.
+ *
+ * This function just tests and compares a CRecipient generated via built-in methods to a
+ * CCRecipient constructed via toFFI.  First, we'll make dummy CScript, CAmount, and bool values,
+ * and then construct a CRecipient from them.  We'll construct a CCRicipient using the same values,
+ * derive a CRecipient from toFFI, and compare the two structs.
+ */
+BOOST_AUTO_TEST_CASE(CCRecipient_toFFI_test) {
+    // Make a dummy 32-byte pubKey.
+    std::vector<unsigned char> pubKeyBytes = {0, 1, 2, 3, 4, 5, 6, 7};
+    unsigned char* pubKey = pubKeyBytes.data();
+
+    // Make a dummy uint64_t amount.
+    uint64_t amount = 123;
+
+    // Make a dummy bool.
+    bool subtractFee = true;
+
+    // Construct the dummy CCRecipient.
+    CCRecipient ccrecipient = createCCRecipient(pubKey, amount, subtractFee);
+
+    // Correctly construct CRecipient
+    CScript cscript = createCScriptFromBytes(ccrecipient.pubKey, ccrecipient.pubKeyLength);
+    CRecipient crecipient = createCRecipient(cscript, ccrecipient.cAmount, static_cast<bool>(ccrecipient.subtractFee));
+
+    // Now convert CRecipient back to CCRecipient using toFFI
+    CCRecipient convertedCCRecipient = toFFI(crecipient);
+
+    // Compare the two structs.
+    BOOST_CHECK_EQUAL(convertedCCRecipient.subtractFee, ccrecipient.subtractFee);
+    BOOST_CHECK_EQUAL(convertedCCRecipient.cAmount, ccrecipient.cAmount);
+    // BOOST_CHECK_EQUAL(crecipient.pubKey, ccrecipient.pubKey);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 }
