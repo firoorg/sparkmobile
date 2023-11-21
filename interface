@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ -z "$1" ]; then
-  echo "Please supply a name for the directory to hold the execuatables"
+  echo "Please supply a name for the directory to hold the executables"
   exit
 fi
 if [ -f $1 ]; then

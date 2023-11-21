@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(getAddress_test) {
 
     // Output the addresses for debugging.
     std::cout << std::endl << "getAddress debugging messages:" << std::endl;
-    std::cout << "Address from Interface: " << addressFromInterface << std::endl;
+    std::cout << "Address from Interface      : " << addressFromInterface << std::endl;
     std::cout << "Directly constructed address: " << encodedDirectAddress << std::endl;
 }
 
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
 
     // Construct a CCoin.
     std::string memo = "Foo";
-    uint64_t v = 123; // arbitrary value
+    uint64_t v = 123; // Arbitrary value.
     std::vector<unsigned char> serial_context = {0, 1, 2, 3, 4, 5, 6, 7};
 
     // Make a dummy nonce (Scalar k).
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     std::cout << "  v: " << identifiedCoinDataFromInterface.v << std::endl;
 
     // Serialize the Scalar k for both identifiedCoinData.
-    unsigned char serializedK[32]; // Assuming Scalar is 32 bytes
+    unsigned char serializedK[32];
     identifiedCoinData.k.serialize(serializedK);
     std::cout << "  k: " << bytesToHex(serializedK, 32) << std::endl;
 
@@ -205,7 +205,6 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     std::cout << "  k: " << bytesToHex(identifiedCoinDataFromInterface.k, 32) << std::endl;
     std::cout << "  memo: " << identifiedCoinData.memo << std::endl;
     std::cout << "  memoLength: " << identifiedCoinData.memo.size() << std::endl;
-    std::cout << std::endl; // Newline.
 }
 
 /*
