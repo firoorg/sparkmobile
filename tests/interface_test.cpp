@@ -53,16 +53,10 @@ BOOST_AUTO_TEST_CASE(getAddress_test) {
     // Compare the two addresses.
     BOOST_CHECK_EQUAL(std::string(addressFromInterface), encodedDirectAddress);
 
-    // Print a newline then a message that getAddress debugging messages will follow.
-    std::cout << std::endl;
-    std::cout << "getAddress debugging messages:" << std::endl;
-
     // Output the addresses for debugging.
+    std::cout << std::endl << "getAddress debugging messages:" << std::endl;
     std::cout << "Address from Interface: " << addressFromInterface << std::endl;
     std::cout << "Directly constructed address: " << encodedDirectAddress << std::endl;
-
-    // Print a newline to the console.
-    std::cout << std::endl;
 }
 
 /*
@@ -105,17 +99,12 @@ BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
     // BOOST_CHECK_EQUAL(coin.serial_context, ccoin.serial_context);
     // Can't check many more fields because they're private.
 
-    // Print a message that convertToCppStruct debugging messages will follow.
-    std::cout << "CCoin->Coin fromFFI debugging messages:" << std::endl;
-
     // Print some information comparing the CCoin and Coin.
+    std::cout << std::endl << "CCoin->Coin fromFFI debugging messages:" << std::endl;
     std::cout << "CCoin v: " << ccoin.v << std::endl;
     std::cout << "Coin  v: " << coin.v << std::endl;
     std::cout << "CCoin serial_context: " << bytesToHex(ccoin.serial_context, ccoin.serial_contextLength) << std::endl;
     std::cout << "Coin  serial_context: " << bytesToHex(coin.serial_context, coin.serial_context.size()) << std::endl;
-
-    // Print a newline to the console.
-    std::cout << std::endl;
 }
 
 /*
@@ -136,10 +125,8 @@ BOOST_AUTO_TEST_CASE(CIdentifiedCoinData_toFFI_test) {
     // Compare the two structs.
     BOOST_CHECK_EQUAL(cIdentifiedCoinData.i, identifiedCoinData.i);
 
-    // Print a message that convertToCStruct debugging messages will follow.
-    std::cout << "convertToCStruct debugging messages:" << std::endl;
-
     // Print some information comparing the IdentifiedCoinData and CIdentifiedCoinData.
+    std::cout << std::endl << "convertToCStruct debugging messages:" << std::endl;
     std::cout << "IdentifiedCoinData  i: " << identifiedCoinData.i << std::endl;
     std::cout << "CIdentifiedCoinData i: " << cIdentifiedCoinData.i << std::endl;
     std::cout << "IdentifiedCoinData  d: " << bytesToHex(identifiedCoinData.d, identifiedCoinData.d.size()) << std::endl;
@@ -198,11 +185,9 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     // BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memo, identifiedCoinData.memo.c_str());
     BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memoLength, identifiedCoinData.memo.size());
 
-    // Print a newline then a message that identifyCoin debugging messages will follow.
-    std::cout << std::endl;
-    std::cout << "identifyCoin debugging messages:" << std::endl;
 
     // Output the addresses for debugging.
+    std::cout << std::endl << "identifyCoin debugging messages:" << std::endl;
     std::cout << "IdentifiedCoinData from Interface: " << std::endl;
     std::cout << "  i: " << identifiedCoinDataFromInterface.i << std::endl;
     std::cout << "  v: " << identifiedCoinDataFromInterface.v << std::endl;
@@ -261,20 +246,19 @@ BOOST_AUTO_TEST_CASE(CRecipient_fromFFI_test) {
     BOOST_CHECK_EQUAL(recipient.amount, crecipient.amount);
     // BOOST_CHECK_EQUAL(recipient.pubKey, crecipient.pubKey);
 
-    // Print a message that convertToCppStruct debugging messages will follow.
-    std::cout << "CCRecipient->CRecipient fromFFI debugging messages:" << std::endl;
 
     // Print some information comparing the CCRecipient and CRecipient.
+    std::cout << std::endl << "CCRecipient->CRecipient fromFFI debugging messages:" << std::endl;
     std::cout << "CCRecipient subtractFeeFromAmount: " << ccrecipient.subtractFee << std::endl;
     std::cout << "CRecipient  subtractFeeFromAmount: " << crecipient.subtractFeeFromAmount << std::endl;
     std::cout << "CCRecipient amount: " << ccrecipient.cAmount << std::endl;
     std::cout << "CRecipient  amount: " << crecipient.amount << std::endl;
     std::cout << "CCRecipient pubKey: " << bytesToHex(ccrecipient.pubKey, 32) << std::endl;
 
-    // Serializing CScript object to a byte array
+    // Serializing CScript object to a byte array.
     std::vector<unsigned char> serializedPubKey = serializeCScript(crecipient.pubKey);
 
-    // Convert the serialized byte array to hex string
+    // Convert the serialized byte array to hex string.
     std::cout << "CRecipient  pubKey: " << bytesToHex(serializedPubKey.data(), serializedPubKey.size()) << std::endl;
 }
 
@@ -304,17 +288,33 @@ BOOST_AUTO_TEST_CASE(CCRecipient_toFFI_test) {
     // Construct the dummy CCRecipient.
     CCRecipient ccrecipient = createCCRecipient(pubKey, amount, subtractFee);
 
-    // Correctly construct CRecipient
+    // Correctly construct CRecipient.
     CScript cscript = createCScriptFromBytes(ccrecipient.pubKey, ccrecipient.pubKeyLength);
     CRecipient crecipient = createCRecipient(cscript, ccrecipient.cAmount, static_cast<bool>(ccrecipient.subtractFee));
 
-    // Now convert CRecipient back to CCRecipient using toFFI
+    // Now convert CRecipient back to CCRecipient using toFFI.
     CCRecipient convertedCCRecipient = toFFI(crecipient);
 
     // Compare the two structs.
     BOOST_CHECK_EQUAL(convertedCCRecipient.subtractFee, ccrecipient.subtractFee);
     BOOST_CHECK_EQUAL(convertedCCRecipient.cAmount, ccrecipient.cAmount);
     // BOOST_CHECK_EQUAL(crecipient.pubKey, ccrecipient.pubKey);
+
+    // Print some information comparing the CCRecipient and CRecipient.
+    std::cout << std::endl << "CRecipient->CCRecipient toFFI debugging messages:" << std::endl;
+    std::cout << "CRecipient subtractFeeFromAmount: " << crecipient.subtractFeeFromAmount << std::endl;
+    std::cout << "CCRecipient  subtractFeeFromAmount: " << ccrecipient.subtractFee << std::endl;
+    std::cout << "CRecipient amount: " << crecipient.amount << std::endl;
+    std::cout << "CCRecipient  amount: " << ccrecipient.cAmount << std::endl;
+
+    // Serialize CScript object to a byte array.
+    std::vector<unsigned char> serializedPubKey = serializeCScript(crecipient.pubKey);
+
+    // Convert the serialized byte array to hex string.
+    std::cout << "CRecipient pubKey: " << bytesToHex(serializedPubKey.data(), serializedPubKey.size()) << std::endl;
+
+    // Serialize CCRecipient pubKey (which is already a byte array).
+    std::cout << "CCRecipient pubKey: " << bytesToHex(ccrecipient.pubKey, ccrecipient.pubKeyLength) << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()
