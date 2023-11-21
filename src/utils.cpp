@@ -199,10 +199,11 @@ CRecipient createCRecipient(const CScript& script, CAmount amount, bool subtract
  * Used by createCCoin.
  */
 unsigned char* copyBytes(const unsigned char* source, int length) {
-	if (source == nullptr) return nullptr;
-	unsigned char* dest = new unsigned char[length];
-	std::memcpy(dest, source, length);
-	return dest;
+    if (source == nullptr || length <= 0) return nullptr;
+
+    unsigned char* dest = new unsigned char[length];
+    std::memcpy(dest, source, length);
+    return dest;
 }
 
 unsigned char *hexToBytes(const char *hexstr) {
