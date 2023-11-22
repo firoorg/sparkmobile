@@ -235,7 +235,10 @@ BOOST_AUTO_TEST_CASE(CRecipient_fromFFI_test) {
     CCRecipient ccrecipient = createCCRecipient(pubKey, amount, subtractFee);
 
     // Construct the dummy CRecipient.
-    CScript cscript = CScript();
+    CScript cscript;
+    for(int i = 0; i < 32; ++i) {
+      cscript << pubKeyBytes[i];
+    }
     CAmount camount = CAmount(amount);
     CRecipient crecipient = createCRecipient(cscript, camount, subtractFee);
 
@@ -257,10 +260,17 @@ BOOST_AUTO_TEST_CASE(CRecipient_fromFFI_test) {
     std::cout << "CCRecipient pubKey: " << bytesToHex(ccrecipient.pubKey, 32) << std::endl;
 
     // Serializing CScript object to a byte array.
-    std::vector<unsigned char> serializedPubKey = serializeCScript(crecipient.pubKey);
+    /*
+    std::vector<unsigned char> serializedPubKey;
 
-    // Convert the serialized byte array to hex string.
-    std::cout << "CRecipient  pubKey: " << bytesToHex(serializedPubKey.data(), serializedPubKey.size()) << std::endl;
+    if (crecipient.pubKey.size() > 0) {
+        serializedPubKey = serializeCScript(crecipient.pubKey);
+    }
+
+    std::cout << "CRecipient pubKey: " << bytesToHex(serializedPubKey, serializedPubKey.size());
+    */
+
+    std::cout << "CRecipient pubKey : TODO FIX TODO FIX TODO FIX TODO FIX TODO FIX TODO FIX TODO FIX" << std::endl;
 }
 
 /*
