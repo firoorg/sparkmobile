@@ -155,38 +155,6 @@ CRecipient fromFFI(const CCRecipient& c_struct) {
 }
 
 /*
- * Utility function to decode an Address from a string.
- */
-spark::Address decodeAddress(const std::string& str, bool isTestnet) {
-	spark::Address address;
-	address.decode(str);
-
-	return address;
-}
-
-/*
- * MintedCoinData factory.
- */
-spark::MintedCoinData createMintedCoinData(const char* address, uint64_t v, const char* memo) {
-	return {
-		decodeAddress(address, true),
-		v,
-		memo
-	};
-}
-
-/*
- * Utility function to convert an FFI-friendly C CMintedCoinData struct to a C++ MintedCoinData.
- */
-spark::MintedCoinData fromFFI(const CMintedCoinData& c_struct) {
-	return createMintedCoinData(
-		c_struct.address,
-		c_struct.value,
-		c_struct.memo
-	);
-}
-
-/*
  * CCRecipient factory.
  *
  * TODO manage the memory allocated by this function.
@@ -232,6 +200,60 @@ CRecipient createCRecipient(const CScript& script, CAmount amount, bool subtract
 	recipient.amount = amount;
 	recipient.subtractFeeFromAmount = subtractFee;
 	return recipient;
+}
+
+/*
+ * Utility function to decode an Address from a string.
+ */
+spark::Address decodeAddress(const std::string& str, bool isTestnet) {
+	spark::Address address;
+	address.decode(str);
+
+	return address;
+}
+
+/*
+ * MintedCoinData factory.
+ */
+spark::MintedCoinData createMintedCoinData(const char* address, uint64_t v, const char* memo) {
+	return {
+		decodeAddress(address, true),
+		v,
+		memo
+	};
+}
+
+/*
+ * Utility function to convert an FFI-friendly C CMintedCoinData struct to a C++ MintedCoinData.
+ */
+spark::MintedCoinData fromFFI(const CMintedCoinData& c_struct) {
+	return createMintedCoinData(
+		c_struct.address,
+		c_struct.value,
+		c_struct.memo
+	);
+}
+
+/*
+ * CMintedCoinData factory.
+ */
+CMintedCoinData createCMintedCoinData(const char* address, uint64_t value, const char* memo) {
+	CMintedCoinData c_struct;
+	c_struct.address = strdup(address);
+	c_struct.value = value;
+	c_struct.memo = strdup(memo);
+	return c_struct;
+}
+
+/*
+ * Utility function to convert a C++ MintedCoinData struct to an FFI-friendly CMintedCoinData.
+ */
+CMintedCoinData toFFI(const spark::MintedCoinData& cpp_struct) {
+	return createCMintedCoinData(
+		cpp_struct.address.encode(true).c_str(),
+		cpp_struct.v,
+		cpp_struct.memo.c_str()
+	);
 }
 
 /*

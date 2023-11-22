@@ -368,5 +368,35 @@ BOOST_AUTO_TEST_CASE(MintedCoinData_fromFFI_test) {
     std::cout << "MintedCoinData  memo: " << mintedCoinData.memo << std::endl;
 }
 
+/*
+ * Debug function to develop a MintedCoinData->CMintedCoinData toFFI function.
+ */
+BOOST_AUTO_TEST_CASE(CMintedCoinData_toFFI_test) {
+    // Make a dummy MintedCoinData.
+    MintedCoinData mintedCoinData;
+    spark::Address address;
+    address.decode("st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373");
+    mintedCoinData.address = address;
+    mintedCoinData.v = 123;
+    mintedCoinData.memo = "Foo";
+
+    // Convert the MintedCoinData to a CMintedCoinData.
+    CMintedCoinData cmintedCoinData = toFFI(mintedCoinData);
+
+    // Compare the two structs.
+    //BOOST_CHECK_EQUAL(cmintedCoinData.address, mintedCoinData.address);
+    BOOST_CHECK_EQUAL(cmintedCoinData.value, mintedCoinData.v);
+    BOOST_CHECK_EQUAL(cmintedCoinData.memo, mintedCoinData.memo);
+
+    // Print some information comparing the CMintedCoinData and MintedCoinData.
+    std::cout << std::endl << "MintedCoinData->CMintedCoinData toFFI debugging messages:" << std::endl;
+    std::cout << "MintedCoinData  address: " << mintedCoinData.address.encode(ADDRESS_NETWORK_TESTNET) << std::endl;
+    std::cout << "CMintedCoinData address: " << cmintedCoinData.address << std::endl;
+    std::cout << "MintedCoinData  value: " << mintedCoinData.v << std::endl;
+    std::cout << "CMintedCoinData value: " << cmintedCoinData.value << std::endl;
+    std::cout << "MintedCoinData  memo: " << mintedCoinData.memo << std::endl;
+    std::cout << "CMintedCoinData memo: " << cmintedCoinData.memo << std::endl;
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 }
