@@ -44,6 +44,8 @@ CMintedCoinData createCMintedCoinData(const char* address, uint64_t value, const
 
 CMintedCoinData toFFI(const spark::MintedCoinData& cpp_struct);
 
+spark::OutputCoinData fromFFI(const COutputCoinData& c_struct);
+
 char const hexArray[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
 						   'e', 'f'};
 

@@ -113,4 +113,15 @@ struct CCRecipient* createSparkMintRecipients(
         const char* memo,
         int subtractFee);
 
+/*
+ * FFI-friendly wrapper for a spark::OutputCoinData.
+ *
+ * An OutputCoinData is an address, value, and memo.  We accept these params as a C struct.
+ */
+struct COutputCoinData {
+    const char* address;
+    uint64_t value;
+    const char* memo;
+};
+
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H

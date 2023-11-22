@@ -341,7 +341,7 @@ BOOST_AUTO_TEST_CASE(CCRecipient_toFFI_test) {
 }
 
 /*
- * Debug function to develop a CMintedCoiNData->MintedCoinData fromFFI function.
+ * Debug function to develop a CMintedCoinData->MintedCoinData fromFFI function.
  */
 BOOST_AUTO_TEST_CASE(MintedCoinData_fromFFI_test) {
     // Make a dummy CMintedCoinData.
@@ -457,6 +457,34 @@ BOOST_AUTO_TEST_CASE(createSparkMintRecipients_test) {
     std::cout << "Expected CCRecipient 2 amount: " << expected[1].cAmount << std::endl;
     std::cout << "Expected CCRecipient 1 subtractFee: " << expected[0].subtractFee << std::endl;
     std::cout << "Expected CCRecipient 2 subtractFee: " << expected[1].subtractFee << std::endl;
+}
+
+/*
+ * Debug function to develop a COutputCoinData->CCOutputCoinData toFFI function.
+ */
+BOOST_AUTO_TEST_CASE(COutputCoinData_toFFI_test) {
+    // Make a dummy COutputCoinData.
+    COutputCoinData coutputCoinData;
+    coutputCoinData.address = "st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373";
+    coutputCoinData.value = 123;
+    coutputCoinData.memo = "Foo";
+
+    // Convert the COutputCoinData to a OutputCoinData.
+    OutputCoinData outputCoinData = fromFFI(coutputCoinData);
+
+    // Compare the two structs.
+    //BOOST_CHECK_EQUAL(outputCoinData.address, coutputCoinData.address);
+    BOOST_CHECK_EQUAL(outputCoinData.v, coutputCoinData.value);
+    BOOST_CHECK_EQUAL(outputCoinData.memo, coutputCoinData.memo);
+
+    // Print some information comparing the COutputCoinData and OutputCoinData.
+    std::cout << std::endl << "COutputCoinData->OutputCoinData toFFI debugging messages:" << std::endl;
+    std::cout << "COutputCoinData address: " << coutputCoinData.address << std::endl;
+    std::cout << "OutputCoinData  address: " << outputCoinData.address.encode(ADDRESS_NETWORK_TESTNET) << std::endl;
+    std::cout << "COutputCoinData value: " << coutputCoinData.value << std::endl;
+    std::cout << "OutputCoinData  value: " << outputCoinData.v << std::endl;
+    std::cout << "COutputCoinData memo: " << coutputCoinData.memo << std::endl;
+    std::cout << "OutputCoinData  memo: " << outputCoinData.memo << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

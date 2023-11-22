@@ -257,6 +257,28 @@ CMintedCoinData toFFI(const spark::MintedCoinData& cpp_struct) {
 }
 
 /*
+ * OutputCoinData factory.
+ */
+spark::OutputCoinData createOutputCoinData(const char* address, uint64_t v, const char* memo) {
+	return {
+			decodeAddress(address),
+			v,
+			memo
+	};
+}
+
+/*
+ * Utility function to convert an FFI-friendly C COutputCoinData struct to a C++ OutputCoinData.
+ */
+spark::OutputCoinData fromFFI(const COutputCoinData& c_struct) {
+	return createOutputCoinData(
+			c_struct.address,
+			c_struct.value,
+			c_struct.memo
+	);
+}
+
+/*
  * Utility function for deep copying byte arrays.
  *
  * Used by createCCoin.
