@@ -302,7 +302,11 @@ BOOST_AUTO_TEST_CASE(CCRecipient_toFFI_test) {
     CCRecipient ccrecipient = createCCRecipient(pubKey, amount, subtractFee);
 
     // Correctly construct CRecipient.
-    CScript cscript = createCScriptFromBytes(ccrecipient.pubKey, ccrecipient.pubKeyLength);
+    CScript cscript;
+    for(int i = 0; i < 32; ++i) {
+        cscript << pubKeyBytes[i];
+    }
+
     CRecipient crecipient = createCRecipient(cscript, ccrecipient.cAmount, static_cast<bool>(ccrecipient.subtractFee));
 
     // Now convert CRecipient back to CCRecipient using toFFI.
