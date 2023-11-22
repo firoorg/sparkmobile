@@ -347,6 +347,15 @@ BOOST_AUTO_TEST_CASE(MintedCoinData_fromFFI_test) {
     //BOOST_CHECK_EQUAL(mintedCoinData.address, cmintedCoinData.address);
     BOOST_CHECK_EQUAL(mintedCoinData.v, cmintedCoinData.value);
     BOOST_CHECK_EQUAL(mintedCoinData.memo, cmintedCoinData.memo);
+
+    // Print some information comparing the CMintedCoinData and MintedCoinData.
+    std::cout << std::endl << "CMintedCoinData->MintedCoinData fromFFI debugging messages:" << std::endl;
+    std::cout << "CMintedCoinData address: " << cmintedCoinData.address << std::endl;
+    std::cout << "MintedCoinData  address: " << mintedCoinData.address.encode(ADDRESS_NETWORK_TESTNET) << std::endl;
+    std::cout << "CMintedCoinData value: " << cmintedCoinData.value << std::endl;
+    std::cout << "MintedCoinData  value: " << mintedCoinData.v << std::endl;
+    std::cout << "CMintedCoinData memo: " << cmintedCoinData.memo << std::endl;
+    std::cout << "MintedCoinData  memo: " << mintedCoinData.memo << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()
