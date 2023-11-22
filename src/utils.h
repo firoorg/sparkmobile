@@ -34,7 +34,7 @@ struct CCRecipient createCCRecipient(const unsigned char* pubKey, uint64_t amoun
 
 CCRecipient toFFI(const CRecipient& cpp_struct);
 
-spark::Address decodeAddress(const std::string& str, bool isTestnet);
+spark::Address decodeAddress(const std::string& str);
 
 spark::MintedCoinData createMintedCoinData(const char* address, uint64_t v, const char* memo);
 

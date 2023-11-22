@@ -205,7 +205,7 @@ CRecipient createCRecipient(const CScript& script, CAmount amount, bool subtract
 /*
  * Utility function to decode an Address from a string.
  */
-spark::Address decodeAddress(const std::string& str, bool isTestnet) {
+spark::Address decodeAddress(const std::string& str) {
 	spark::Address address;
 	address.decode(str);
 
@@ -217,7 +217,7 @@ spark::Address decodeAddress(const std::string& str, bool isTestnet) {
  */
 spark::MintedCoinData createMintedCoinData(const char* address, uint64_t v, const char* memo) {
 	return {
-		decodeAddress(address, true),
+		decodeAddress(address),
 		v,
 		memo
 	};
