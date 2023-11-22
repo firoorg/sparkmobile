@@ -398,5 +398,66 @@ BOOST_AUTO_TEST_CASE(CMintedCoinData_toFFI_test) {
     std::cout << "CMintedCoinData memo: " << cmintedCoinData.memo << std::endl;
 }
 
+/*
+ * Test the correctness of the createSparkMintRecipients wrapper.
+ */
+BOOST_AUTO_TEST_CASE(createSparkMintRecipients_test) {
+    // Sample pubkey scripts.
+    std::vector<unsigned char> pubKey1 = {1, 2, 3};
+    std::vector<unsigned char> pubKey2 = {4, 5, 6};
+
+    // Convert to PubKeyScript structs.
+    PubKeyScript pubKeyScripts[2];
+    pubKeyScripts[0].bytes = pubKey1.data();
+    pubKeyScripts[0].length = pubKey1.size();
+    pubKeyScripts[1].bytes = pubKey2.data();
+    pubKeyScripts[1].length = pubKey2.size();
+
+    // Sample amounts.
+    uint64_t amounts[2] = {123, 456};
+
+    // Sample memo.
+    std::string memo = "Test memo";
+
+    // Call wrapper
+    CCRecipient* ccRecipients = createSparkMintRecipients(2, pubKeyScripts, amounts, memo.c_str(), 1);
+
+    // Manually create CRecipient objects.
+    CScript script1 = createCScriptFromBytes(pubKey1.data(), pubKey1.size());
+    CScript script2 = createCScriptFromBytes(pubKey2.data(), pubKey2.size());
+    std::vector<CRecipient> recipients = {
+        createCRecipient(script1, amounts[0], true),
+        createCRecipient(script2, amounts[1], true)
+    };
+
+    // Convert to CCRecipients manually.
+    std::vector<CCRecipient> expected;
+    for (auto& recipient : recipients) {
+        expected.push_back(toFFI(recipient));
+    }
+
+    // Compare.
+    for (int i = 0; i < 2; i++) {
+        BOOST_CHECK_EQUAL(ccRecipients[i].cAmount, expected[i].cAmount);
+        BOOST_CHECK_EQUAL(ccRecipients[i].subtractFee, expected[i].subtractFee);
+        BOOST_CHECK_EQUAL(ccRecipients[i].pubKeyLength, expected[i].pubKeyLength);
+    }
+
+    // Clean up.
+    delete[] ccRecipients;
+
+    // Print some information about the recipients for debugging.
+    std::cout << std::endl << "createSparkMintRecipients debugging messages:" << std::endl;
+    std::cout << "CCRecipient 1 amount: " << ccRecipients[0].cAmount << std::endl;
+    std::cout << "CCRecipient 2 amount: " << ccRecipients[1].cAmount << std::endl;
+    std::cout << "CCRecipient 1 subtractFee: " << ccRecipients[0].subtractFee << std::endl;
+    std::cout << "CCRecipient 2 subtractFee: " << ccRecipients[1].subtractFee << std::endl;
+    // TODO add pubKey messages; for now just skip to printing the expected values.
+    std::cout << "Expected CCRecipient 1 amount: " << expected[0].cAmount << std::endl;
+    std::cout << "Expected CCRecipient 2 amount: " << expected[1].cAmount << std::endl;
+    std::cout << "Expected CCRecipient 1 subtractFee: " << expected[0].subtractFee << std::endl;
+    std::cout << "Expected CCRecipient 2 subtractFee: " << expected[1].subtractFee << std::endl;
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 }
