@@ -97,4 +97,20 @@ struct CMintedCoinData {
     const char* memo;
 };
 
+struct PubKeyScript {
+    unsigned char* bytes;
+    int length;
+};
+
+/*
+ * FFI-friendly wrapper for spark::createSparkMintRecipients.
+ */
+EXPORT_DART
+struct CCRecipient* createSparkMintRecipients(
+        int numRecipients,
+        struct PubKeyScript* pubKeyScripts,
+        uint64_t* amounts,
+        const char* memo,
+        int subtractFee);
+
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H

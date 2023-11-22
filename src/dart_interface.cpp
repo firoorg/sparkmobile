@@ -71,3 +71,50 @@ struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDa
         return CIdentifiedCoinData();
     }
 }
+
+/*
+ * FFI-friendly wrapper for spark::createSparkMintRecipients.
+ */
+EXPORT_DART
+struct CCRecipient* createSparkMintRecipients(
+        int numRecipients,
+        struct PubKeyScript* pubKeyScripts,
+        uint64_t* amounts,
+        const char* memo,
+        int subtractFee)
+{
+    try {
+        std::vector<CRecipient> recipients;
+
+        for (int i = 0; i < numRecipients; i++) {
+            CScript scriptPubKey = createCScriptFromBytes(
+                pubKeyScripts[i].bytes,
+                pubKeyScripts[i].length
+            );
+
+            CRecipient recipient;
+            recipient.pubKey = scriptPubKey;
+
+            recipient.amount = amounts[i];
+
+            recipient.subtractFeeFromAmount = (bool)subtractFee;
+
+            recipients.push_back(recipient);
+        }
+
+        std::vector<CCRecipient> ccRecipients;
+
+        for (const CRecipient& recipient : recipients) {
+            CCRecipient ccRecipient = toFFI(recipient);
+            ccRecipients.push_back(ccRecipient);
+        }
+
+        CCRecipient* result = new CCRecipient[numRecipients];
+        std::copy(ccRecipients.begin(), ccRecipients.end(), result);
+
+        return result;
+    } catch (const std::exception& e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+        return nullptr;
+    }
+}
