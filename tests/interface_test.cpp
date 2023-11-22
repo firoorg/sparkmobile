@@ -325,13 +325,19 @@ BOOST_AUTO_TEST_CASE(CCRecipient_toFFI_test) {
     std::cout << "CCRecipient  amount: " << ccrecipient.cAmount << std::endl;
 
     // Serialize CScript object to a byte array.
-    std::vector<unsigned char> serializedPubKey = serializeCScript(crecipient.pubKey);
+    /*
+    std::vector<unsigned char> serializedPubKey;
 
-    // Convert the serialized byte array to hex string.
-    std::cout << "CRecipient pubKey: " << bytesToHex(serializedPubKey.data(), serializedPubKey.size()) << std::endl;
+    if (crecipient.pubKey.size() > 0) {
+        serializedPubKey = serializeCScript(crecipient.pubKey);
+
+        std::cout << "CRecipient pubKey: " << bytesToHex(serializedPubKey, serializedPubKey.size()) << std::endl;
+    }
 
     // Serialize CCRecipient pubKey (which is already a byte array).
     std::cout << "CCRecipient pubKey: " << bytesToHex(ccrecipient.pubKey, ccrecipient.pubKeyLength) << std::endl;
+    */
+    std::cout << "TODO FIX CRecipient and CCRecipient pubKey TODO FIX" << std::endl;
 }
 
 /*
