@@ -84,4 +84,17 @@ struct CCRecipient {
     int subtractFee;
 };
 
+/*
+ * FFI-friendly wrapper for a spark::MintedCoinData.
+ *
+ * A MintedCoinData is a struct that contains an Address, a uint64_t value, and a string memo.  We
+ * accept these as a CMintedCoinData from the Dart interface, and convert them to a MintedCoinData
+ * struct.
+ */
+struct CMintedCoinData {
+    const char* address;
+    uint64_t value;
+    const char* memo;
+};
+
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H

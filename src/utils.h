@@ -34,6 +34,12 @@ struct CCRecipient createCCRecipient(const unsigned char* pubKey, uint64_t amoun
 
 CCRecipient toFFI(const CRecipient& cpp_struct);
 
+spark::Address decodeAddress(const std::string& str, bool isTestnet);
+
+spark::MintedCoinData createMintedCoinData(const char* address, uint64_t v, const char* memo);
+
+spark::MintedCoinData fromFFI(const CMintedCoinData& c_struct);
+
 char const hexArray[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
 						   'e', 'f'};
 

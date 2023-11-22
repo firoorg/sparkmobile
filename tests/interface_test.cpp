@@ -330,5 +330,24 @@ BOOST_AUTO_TEST_CASE(CCRecipient_toFFI_test) {
     std::cout << "CCRecipient pubKey: " << bytesToHex(ccrecipient.pubKey, ccrecipient.pubKeyLength) << std::endl;
 }
 
+/*
+ * Debug function to develop a CMintedCoiNData->MintedCoinData fromFFI function.
+ */
+BOOST_AUTO_TEST_CASE(MintedCoinData_fromFFI_test) {
+    // Make a dummy CMintedCoinData.
+    CMintedCoinData cmintedCoinData;
+    cmintedCoinData.address = "st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373";
+    cmintedCoinData.value = 123;
+    cmintedCoinData.memo = "Foo";
+
+    // Convert the CMintedCoinData to a MintedCoinData.
+    MintedCoinData mintedCoinData = fromFFI(cmintedCoinData);
+
+    // Compare the two structs.
+    //BOOST_CHECK_EQUAL(mintedCoinData.address, cmintedCoinData.address);
+    BOOST_CHECK_EQUAL(mintedCoinData.v, cmintedCoinData.value);
+    BOOST_CHECK_EQUAL(mintedCoinData.memo, cmintedCoinData.memo);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 }
