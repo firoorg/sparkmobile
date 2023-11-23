@@ -247,13 +247,15 @@ CMintedCoinData createCMintedCoinData(const char* address, uint64_t value, const
 
 /*
  * Utility function to convert a C++ MintedCoinData struct to an FFI-friendly CMintedCoinData.
+ *
+ * TODO add isTestNet flag for address encoding.
  */
 CMintedCoinData toFFI(const spark::MintedCoinData& cpp_struct) {
-	return createCMintedCoinData(
-		cpp_struct.address.encode(true).c_str(),
-		cpp_struct.v,
-		cpp_struct.memo.c_str()
-	);
+    CMintedCoinData c_struct;
+    c_struct.address = strdup(cpp_struct.address.encode(spark::ADDRESS_NETWORK_TESTNET).c_str());
+    c_struct.value = cpp_struct.v;
+    c_struct.memo = strdup(cpp_struct.memo.c_str());
+    return c_struct;
 }
 
 /*
@@ -261,20 +263,44 @@ CMintedCoinData toFFI(const spark::MintedCoinData& cpp_struct) {
  */
 spark::OutputCoinData createOutputCoinData(const char* address, uint64_t v, const char* memo) {
 	return {
-			decodeAddress(address),
-			v,
-			memo
+		decodeAddress(address),
+		v,
+		memo
 	};
 }
 
 /*
  * Utility function to convert an FFI-friendly C COutputCoinData struct to a C++ OutputCoinData.
+ *
+ * TODO add isTestNet flag for address encoding.
  */
 spark::OutputCoinData fromFFI(const COutputCoinData& c_struct) {
 	return createOutputCoinData(
-			c_struct.address,
-			c_struct.value,
-			c_struct.memo
+		c_struct.address,
+		c_struct.value,
+		c_struct.memo
+	);
+}
+
+/*
+ * COutputCoinData factory.
+ */
+COutputCoinData createCOutputCoinData(const char* address, uint64_t value, const char* memo) {
+	COutputCoinData c_struct;
+	c_struct.address = strdup(address);
+	c_struct.value = value;
+	c_struct.memo = strdup(memo);
+	return c_struct;
+}
+
+/*
+ * Utility function to convert a C++ OutputCoinData struct to an FFI-friendly COutputCoinData.
+ */
+COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct) {
+	return createCOutputCoinData(
+			cpp_struct.address.encode(true).c_str(),
+			cpp_struct.v,
+			cpp_struct.memo.c_str()
 	);
 }
 

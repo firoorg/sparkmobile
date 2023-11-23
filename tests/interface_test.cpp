@@ -460,7 +460,7 @@ BOOST_AUTO_TEST_CASE(createSparkMintRecipients_test) {
 }
 
 /*
- * Debug function to develop a COutputCoinData->CCOutputCoinData toFFI function.
+ * Debug function to develop a OutputCoinData->COutputCoinData toFFI function.
  */
 BOOST_AUTO_TEST_CASE(COutputCoinData_toFFI_test) {
     // Make a dummy COutputCoinData.
@@ -485,6 +485,64 @@ BOOST_AUTO_TEST_CASE(COutputCoinData_toFFI_test) {
     std::cout << "OutputCoinData  value: " << outputCoinData.v << std::endl;
     std::cout << "COutputCoinData memo: " << coutputCoinData.memo << std::endl;
     std::cout << "OutputCoinData  memo: " << outputCoinData.memo << std::endl;
+}
+
+/*
+ * Debug function to develop a COutputCoinData->OutputCoinData fromFFI function.
+ */
+BOOST_AUTO_TEST_CASE(OutputCoinData_fromFFI_test) {
+    // Make a dummy COutputCoinData.
+    COutputCoinData coutputCoinData;
+    coutputCoinData.address = "st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373";
+    coutputCoinData.value = 123;
+    coutputCoinData.memo = "Foo";
+
+    // Convert the COutputCoinData to a OutputCoinData.
+    OutputCoinData outputCoinData = fromFFI(coutputCoinData);
+
+    // Compare the two structs.
+    //BOOST_CHECK_EQUAL(outputCoinData.address, coutputCoinData.address);
+    BOOST_CHECK_EQUAL(outputCoinData.v, coutputCoinData.value);
+    BOOST_CHECK_EQUAL(outputCoinData.memo, coutputCoinData.memo);
+
+    // Print some information comparing the COutputCoinData and OutputCoinData.
+    std::cout << std::endl << "COutputCoinData->OutputCoinData fromFFI debugging messages:" << std::endl;
+    std::cout << "COutputCoinData address: " << coutputCoinData.address << std::endl;
+    std::cout << "OutputCoinData  address: " << outputCoinData.address.encode(ADDRESS_NETWORK_TESTNET) << std::endl;
+    std::cout << "COutputCoinData value: " << coutputCoinData.value << std::endl;
+    std::cout << "OutputCoinData  value: " << outputCoinData.v << std::endl;
+    std::cout << "COutputCoinData memo: " << coutputCoinData.memo << std::endl;
+    std::cout << "OutputCoinData  memo: " << outputCoinData.memo << std::endl;
+}
+
+/*
+ * Debug function to develop a OutputCoinData->COutputCoinData toFFI function.
+ */
+BOOST_AUTO_TEST_CASE(OutputCoinData_toFFI_test) {
+    // Make a dummy OutputCoinData.
+    OutputCoinData outputCoinData;
+    spark::Address address;
+    address.decode("st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373");
+    outputCoinData.address = address;
+    outputCoinData.v = 123;
+    outputCoinData.memo = "Foo";
+
+    // Convert the OutputCoinData to a COutputCoinData.
+    COutputCoinData coutputCoinData = toFFI(outputCoinData);
+
+    // Compare the two structs.
+    //BOOST_CHECK_EQUAL(coutputCoinData.address, outputCoinData.address);
+    BOOST_CHECK_EQUAL(coutputCoinData.value, outputCoinData.v);
+    BOOST_CHECK_EQUAL(coutputCoinData.memo, outputCoinData.memo);
+
+    // Print some information comparing the COutputCoinData and OutputCoinData.
+    std::cout << std::endl << "OutputCoinData->COutputCoinData toFFI debugging messages:" << std::endl;
+    std::cout << "OutputCoinData  address: " << outputCoinData.address.encode(spark::ADDRESS_NETWORK_TESTNET) << std::endl;
+    std::cout << "COutputCoinData address: " << coutputCoinData.address << std::endl;
+    std::cout << "OutputCoinData  value: " << outputCoinData.v << std::endl;
+    std::cout << "COutputCoinData value: " << coutputCoinData.value << std::endl;
+    std::cout << "OutputCoinData  memo: " << outputCoinData.memo << std::endl;
+    std::cout << "COutputCoinData memo: " << coutputCoinData.memo << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()
