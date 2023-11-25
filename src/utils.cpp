@@ -298,9 +298,9 @@ COutputCoinData createCOutputCoinData(const char* address, uint64_t value, const
  */
 COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct) {
 	return createCOutputCoinData(
-			cpp_struct.address.encode(true).c_str(),
-			cpp_struct.v,
-			cpp_struct.memo.c_str()
+		cpp_struct.address.encode(true).c_str(),
+		cpp_struct.v,
+		cpp_struct.memo.c_str()
 	);
 }
 
