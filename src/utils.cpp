@@ -310,6 +310,73 @@ COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct) {
 }
 
 /*
+ * CSparkMintMeta factory.
+ *
+ * A CSparkMintMeta is a C++ struct that contains a height, id, isUsed, txid, diversifier, encrypted
+ * diversifier, value, nonce, memo, serial context, type, and coin.  We accept these as a
+ * CCSparkMintMeta from the Dart interface, and convert them to a C++ CSparkMintMeta struct.
+ *
+ * CSparkMintMeta looks like:
+ *
+    int nHeight;
+    int nId;
+    bool isUsed;
+    uint256 txid;
+    uint64_t i; // diversifier
+    std::vector<unsigned char> d; // encrypted diversifier
+    uint64_t v; // value
+    Scalar k; // nonce
+    std::string memo; // memo
+    std::vector<unsigned char> serial_context;
+    char type;
+    spark::Coin coin;
+    mutable boost::optional<uint256> nonceHash;
+ */
+CSparkMintMeta createCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed,
+									const char* txidStr, const uint64_t diversifier,
+									const char* encryptedDiversifierStr, const uint64_t value,
+									const char* nonceStr, const char* memoStr,
+									const unsigned char* serialContext,
+									const int serialContextLength, const char type, const CCoin coin) {
+	CSparkMintMeta cpp_struct;
+
+	cpp_struct.nHeight = height;
+	cpp_struct.nId = id;
+	cpp_struct.isUsed = isUsed != 0;
+
+	if (txidStr) {
+		cpp_struct.txid = uint256S(txidStr);
+	}
+
+	if (encryptedDiversifierStr) {
+		size_t edLen = std::strlen(encryptedDiversifierStr);
+		cpp_struct.d = std::vector<unsigned char>(encryptedDiversifierStr, encryptedDiversifierStr + edLen);
+	}
+
+	cpp_struct.i = diversifier;
+	cpp_struct.v = value;
+
+	if (nonceStr) {
+		size_t nonceLen = std::strlen(nonceStr);
+		std::vector<unsigned char> nonceBytes(nonceStr, nonceStr + nonceLen);
+		cpp_struct.k = Scalar(nonceBytes.data());
+	}
+
+	if (memoStr) {
+		cpp_struct.memo = std::string(memoStr);
+	}
+
+	if (serialContext && serialContextLength > 0) {
+		cpp_struct.serial_context = std::vector<unsigned char>(serialContext, serialContext + serialContextLength);
+	}
+
+	cpp_struct.type = type;
+	cpp_struct.coin = fromFFI(coin);
+
+	return cpp_struct;
+}
+
+/*
  * Utility function for deep copying byte arrays.
  *
  * Used by createCCoin.

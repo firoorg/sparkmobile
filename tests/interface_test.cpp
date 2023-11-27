@@ -545,5 +545,49 @@ BOOST_AUTO_TEST_CASE(OutputCoinData_toFFI_test) {
     std::cout << "COutputCoinData memo: " << coutputCoinData.memo << std::endl;
 }
 
+/*
+ * Debug function to develop a CSparkMintMeta->CCSparkMintMeta fromFFI function.
+ */
+BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {// Replace the dummy values with the correct types as needed
+    // Make a dummy CSparkMintMeta.
+    uint64_t id = 123;
+    std::string txidStr = "txid";
+    const char* txid = txidStr.c_str();
+    uint64_t diversifier = 456;
+    std::string encryptedDiversifierStr = "diversifier";
+    const char* encryptedDiversifier = encryptedDiversifierStr.c_str();
+    uint64_t value = 789;
+    std::string nonceStr = "nonce";
+    const char* nonce = nonceStr.c_str();
+    std::string memoStr = "memo";
+    const char* memo = memoStr.c_str();
+    std::vector<unsigned char> serialContextVec = {1, 2, 3};
+    const unsigned char* serialContext = serialContextVec.data();
+    int serialContextLength = static_cast<int>(serialContextVec.size());
+    char type = 1; // Example type
+    CCoin coin;
+
+    std::cout << std::endl << "CCSparkMintMeta->CSparkMintMeta fromFFI debugging messages:" << std::endl;
+    std::cout << "txidStr size: " << txidStr.size() << std::endl;
+    std::cout << "encryptedDiversifierStr size: " << encryptedDiversifierStr.size() << std::endl;
+    std::cout << "nonceStr size: " << nonceStr.size() << std::endl;
+    std::cout << "memoStr size: " << memoStr.size() << std::endl;
+    std::cout << "serialContext: " << serialContext << std::endl;
+    std::cout << "serialContextVec size: " << serialContextVec.size() << std::endl;
+
+    // Construct the CSparkMintMeta using its factory.
+    CSparkMintMeta csparkMintMeta = createCSparkMintMeta(123, id, 1, txid, diversifier, encryptedDiversifier, value, nonce, memo, serialContext, serialContextLength, type, coin);
+
+    //// Convert the CSparkMintMeta to a CCSparkMintMeta.
+    //CCSparkMintMeta ccsparkMintMeta = fromFFI(csparkMintMeta);
+    //
+    //// Create a dummy CCSparkMintMeta using the factory.
+    //CCSparkMintMeta expected = createCCSparkMintMeta(123, "id", 1, "txid", 1, "diversifier", 1, 1, "memo", "serial context", 1, 1);
+    //
+    //// Compare the two structs.
+    //BOOST_CHECK_EQUAL(ccsparkMintMeta.height, expected.height);
+    //// etc.
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 }
