@@ -295,10 +295,15 @@ COutputCoinData createCOutputCoinData(const char* address, uint64_t value, const
 
 /*
  * Utility function to convert a C++ OutputCoinData struct to an FFI-friendly COutputCoinData.
+ *
+ * TODO add isTestNet flag for address encoding.
  */
 COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct) {
-	return createCOutputCoinData(
-		cpp_struct.address.encode(true).c_str(),
+    // Encode address for testnet
+    std::string address = cpp_struct.address.encode(spark::ADDRESS_NETWORK_TESTNET);
+
+    return createCOutputCoinData(
+		address.c_str(),
 		cpp_struct.v,
 		cpp_struct.memo.c_str()
 	);
