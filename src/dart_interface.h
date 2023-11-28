@@ -33,6 +33,8 @@ const char* createIncomingViewKey(const char* keyData, int index);
  *
  * A Coin is a type, a key, an index, a value, a memo, and a serial context.  We accept these params
  * as a C struct, deriving the key from the keyData and index.
+ *
+ * TODO replace keyData and index with just an address which we decode.
  */
 struct CCoin {
     char type;
@@ -122,6 +124,32 @@ struct COutputCoinData {
     const char* address;
     uint64_t value;
     const char* memo;
+};
+
+/*
+ * FFI-friendly wrapper for a spark::CSparkMintMeta.
+ *
+ * A CSparkMintMeta is a struct that contains a height, id, isUsed, txid, diversifier, encrypted
+ * diversifier, value, nonce, memo, serial context, type, and coin.  We accept these as a
+ * CCSparkMintMeta from the Dart interface, and convert them to a C++ CSparkMintMeta struct.
+ */
+struct CCSparkMintMeta {
+    uint64_t height;
+    const char* id;
+    int isUsed;
+    const char* txid;
+    uint64_t i; // Diversifier.
+    const unsigned char* d; // Encrypted diversifier.
+    int dLength;
+    uint64_t v; // Value.
+    const unsigned char* k; // Nonce.
+    int kLength;
+    const char* memo;
+    int memoLength;
+    unsigned char* serial_context;
+    int serial_contextLength;
+    char type;
+    CCoin coin;
 };
 
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H
