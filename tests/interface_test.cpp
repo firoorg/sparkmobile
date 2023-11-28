@@ -90,8 +90,9 @@ BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
         static_cast<int>(serial_context.size())
     );
 
-    // Convert the C coin fromFFI to a C++ Coin struct.
-    Coin coin = fromFFI(ccoin);
+    spark::Coin sCoin = fromFFI(ccoin);
+    CDataStream coinStream = toFFI(sCoin);
+    Coin coin = fromFFI(coinStream);
 
     // Compare the coins.
     BOOST_CHECK_EQUAL(coin.type, ccoin.type);
@@ -175,7 +176,8 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     CIdentifiedCoinData identifiedCoinDataFromInterface = identifyCoin(ccoin, keyDataHex, index);
 
     // Directly construct the IdentifiedCoinData using Spark library.
-    Coin coin = fromFFI(ccoin);
+    CDataStream ccoinStream = toFFI(ccoin);
+    Coin coin = fromFFI(ccoinStream);
     IdentifiedCoinData identifiedCoinData = coin.identify(incomingViewKey);
 
     // Compare the two structs.
@@ -184,7 +186,6 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     // BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.k, identifiedCoinData.k.serialize().data());
     // BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memo, identifiedCoinData.memo.c_str());
     BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memoLength, identifiedCoinData.memo.size());
-
 
     // Output the addresses for debugging.
     std::cout << std::endl << "identifyCoin debugging messages:" << std::endl;
@@ -605,14 +606,12 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
     ccsparkMintMeta.txid = "txid";
     ccsparkMintMeta.i = 789;
 
-    // Correctly setting the encrypted diversifier
     const char* encryptedDiversifier = "encryptedDiversifier";
     ccsparkMintMeta.d = reinterpret_cast<const unsigned char*>(encryptedDiversifier);
     ccsparkMintMeta.dLength = std::strlen(encryptedDiversifier);
 
     ccsparkMintMeta.v = 101112;
 
-    // Correctly setting the nonce
     const char* nonce = "nonce";
     ccsparkMintMeta.k = reinterpret_cast<const unsigned char*>(nonce);
     ccsparkMintMeta.kLength = std::strlen(nonce);
@@ -620,7 +619,6 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
     ccsparkMintMeta.memo = "memo";
     ccsparkMintMeta.memoLength = 4;
 
-    // Allocating and setting the serial context
     const char* serialContextStr = "serialContext";
     auto serialContextLength = std::strlen(serialContextStr);
     unsigned char* serialContext = new unsigned char[serialContextLength];
@@ -628,7 +626,6 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
     ccsparkMintMeta.serial_context = serialContext;
     ccsparkMintMeta.serial_contextLength = serialContextLength;
 
-    // Setting the coin
     ccsparkMintMeta.coin = createCCoin(
         COIN_TYPE_MINT,
         reinterpret_cast<const unsigned char*>("k"),

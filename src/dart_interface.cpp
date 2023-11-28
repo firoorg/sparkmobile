@@ -55,9 +55,10 @@ const char* getAddress(const char* keyDataHex, int index, int diversifier, int i
  * We also need the incoming view key or we need to derive it, so accept keyDataHex and index.
  */
 EXPORT_DART
-struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDataHex, int index) {
+struct CIdentifiedCoinData identifyCoin(struct CCoin ccoin, const char* keyDataHex, int index) {
     try {
-        spark::Coin coin = fromFFI(c_struct);
+        CDataStream ccoinStream = toFFI(ccoin);
+        Coin coin = fromFFI(ccoinStream);
 
         // Derive the incoming view key from the key data and index.
         spark::SpendKey spendKey = createSpendKeyFromData(keyDataHex, index);
