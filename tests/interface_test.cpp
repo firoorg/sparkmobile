@@ -108,7 +108,52 @@ BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
     std::cout << "Coin  serial_context: " << bytesToHex(coin.serial_context, coin.serial_context.size()) << std::endl;
 }
 
-// TODO Coin->CCoin toFFI.
+/*
+ * Debug function to develop a Coin->CDataStream toFFI (formerly convertToCStruct).
+ */
+BOOST_AUTO_TEST_CASE(CDataStream_toFFI_test) {
+    // Generate a random nonce k and serialize it to byte array.
+    Scalar k;
+    k.randomize();
+    std::vector<unsigned char> kBytes(32); // Scalar is typically 32 bytes.
+    k.serialize(kBytes.data());
+
+    // Construct a Coin.
+    Address address;
+    address.decode("st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373");
+    std::string memo = "Foo";
+    uint64_t v = 123; // Arbitrary value.
+    std::vector<unsigned char> serial_context = {0, 1, 2, 3, 4, 5, 6, 7};
+    Coin coin(
+        // The test params are only used for unit tests.
+        spark::Params::get_default(),
+        COIN_TYPE_MINT,
+        k,
+        address,
+        v,
+        memo,
+        serial_context
+    );
+
+    // Convert the Coin to a CDataStream.
+    CDataStream cdataStream = toFFI(coin);
+
+    // Convert the CDataStream back to a Coin.
+    Coin ccoin = fromFFI(cdataStream);
+
+    // Compare the two structs.
+    BOOST_CHECK_EQUAL(ccoin.type, coin.type);
+    BOOST_CHECK_EQUAL(ccoin.v, coin.v);
+    // BOOST_CHECK_EQUAL(cdataStream.serial_context, coin.serial_context);
+    // TODO check more.
+
+    // Print some information comparing the Coin and CDataStream.
+    std::cout << std::endl << "Coin->CDataStream toFFI debugging messages:" << std::endl;
+    std::cout << "Coin v: " << coin.v << std::endl;
+    std::cout << "CDataStream  v: " << ccoin.v << std::endl;
+    std::cout << "Coin serial_context: " << bytesToHex(coin.serial_context, coin.serial_context.size()) << std::endl;
+    std::cout << "CDataStream  serial_context: " << bytesToHex(ccoin.serial_context, ccoin.serial_context.size()) << std::endl;
+}
 
 /*
  * Debug function to develop a IdentifiedCoinData->CIdentifiedCoinData toFFI (formerly convertToCStruct).
