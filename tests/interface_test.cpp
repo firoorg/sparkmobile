@@ -176,9 +176,12 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     CIdentifiedCoinData identifiedCoinDataFromInterface = identifyCoin(ccoin, keyDataHex, index);
 
     // Directly construct the IdentifiedCoinData using Spark library.
-    CDataStream ccoinStream = toFFI(ccoin);
-    Coin coin = fromFFI(ccoinStream);
-    IdentifiedCoinData identifiedCoinData = coin.identify(incomingViewKey);
+    Coin coin;
+    coin = Coin(&Params::get_default(), COIN_TYPE_MINT, Scalar(), address, value, memo, serial_context);
+    CDataStream ccoinStream(SER_NETWORK, PROTOCOL_VERSION);
+    ccoinStream << coin;
+    CIdentifiedCoinData identifiedCoinDataFromInterface = identifyCoin(ccoinStream, keyDataHex, index);
+
 
     // Compare the two structs.
     BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.i, identifiedCoinData.i);
