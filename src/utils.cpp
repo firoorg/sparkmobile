@@ -321,7 +321,7 @@ CSparkMintMeta createCSparkMintMeta(const uint64_t height, const uint64_t id, co
 									const char* encryptedDiversifierStr, const uint64_t value,
 									const char* nonceStr, const char* memoStr,
 									const unsigned char* serialContext,
-									const int serialContextLength, const char type, const CDataStream& coinStream) {
+									const int serialContextLength, const char type, const CCoin coin) {
 	CSparkMintMeta cpp_struct;
 
 	cpp_struct.nHeight = height;
@@ -355,7 +355,7 @@ CSparkMintMeta createCSparkMintMeta(const uint64_t height, const uint64_t id, co
 	}
 
 	cpp_struct.type = type;
-	coinStream >> cpp_struct.coin;
+	cpp_struct.coin = fromFFI(coin);
 
 	return cpp_struct;
 }
@@ -387,13 +387,7 @@ CSparkMintMeta fromFFI(const CCSparkMintMeta& c_struct) {
  * diversifier, value, nonce, memo, serial context, type, and coin.  We accept these as a
  * CCSparkMintMeta from the Dart interface, and convert them to a C++ CSparkMintMeta struct.
  */
-CCSparkMintMeta createCCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed,
-									  const char* txid, const uint64_t diversifier,
-									  const char* encryptedDiversifier, const uint64_t value,
-									  const char* nonce, const char* memo,
-									  const unsigned char* serial_context,
-									  const int serial_contextLength, const char type,
-									  const CCoin coin) {
+CCSparkMintMeta createCCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed, const char* txid, const uint64_t diversifier, const char* encryptedDiversifier, const uint64_t value, const char* nonce, const char* memo, const unsigned char* serial_context, const int serial_contextLength, const char type, const CCoin coin) {
 	CCSparkMintMeta c_struct;
 	c_struct.height = height;std::string idStr = std::to_string(id);
 	const char* idCStr = idStr.c_str();
@@ -421,25 +415,33 @@ CCSparkMintMeta createCCSparkMintMeta(const uint64_t height, const uint64_t id, 
 /*
  * Utility function to convert an FFI-friendly C CCSparkMintMeta struct to a C++ CSparkMintMeta.
  */
-CSparkMintMeta fromFFI(const CCSparkMintMeta& c_struct) {
-	CSparkMintMeta cpp_struct;
+CCSparkMintMeta toFFI(const CSparkMintMeta& cpp_struct) {
+	CCSparkMintMeta c_struct;
 
-	cpp_struct.nHeight = c_struct.height;
-	cpp_struct.nId = std::stoull(c_struct.id);
-	cpp_struct.isUsed = c_struct.isUsed;
-	cpp_struct.txid = uint256S(c_struct.txid);
-	cpp_struct.i = c_struct.i;
-	cpp_struct.d = std::vector<unsigned char>(c_struct.d, c_struct.d + c_struct.dLength);
-	cpp_struct.v = c_struct.v;
-	cpp_struct.k = bytesToScalar(c_struct.k, c_struct.kLength);
-	cpp_struct.memo = std::string(c_struct.memo);
-	cpp_struct.serial_context = std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_context + c_struct.serial_contextLength);
-	cpp_struct.type = c_struct.type;
+	c_struct.height = cpp_struct.nHeight;
+	std::string idStr = std::to_string(cpp_struct.nId);
+	const char* idCStr = idStr.c_str();
+	c_struct.id = strdup(idCStr);
+	c_struct.isUsed = cpp_struct.isUsed;
+	c_struct.txid = strdup(cpp_struct.txid.ToString().c_str());
+	c_struct.i = cpp_struct.i;
+	c_struct.d = copyBytes(cpp_struct.d.data(), cpp_struct.d.size());
+	c_struct.dLength = cpp_struct.d.size();
+	c_struct.v = cpp_struct.v;
+	std::vector<unsigned char> kBytes(32);
+	cpp_struct.k.serialize(kBytes.data());
+	c_struct.k = copyBytes(kBytes.data(), kBytes.size());
 
-	CDataStream coinStream(c_struct.coin, c_struct.coin + sizeof(c_struct.coin));
-	coinStream >> cpp_struct.coin;
+	c_struct.kLength = kBytes.size();
 
-	return cpp_struct;
+	c_struct.memo = strdup(cpp_struct.memo.c_str());
+	c_struct.serial_context = copyBytes(cpp_struct.serial_context.data(),
+										cpp_struct.serial_context.size());
+	c_struct.serial_contextLength = cpp_struct.serial_context.size();
+	c_struct.type = cpp_struct.type;
+	c_struct.coin = toFFI(cpp_struct.coin);
+
+	return c_struct;
 }
 
 /*
