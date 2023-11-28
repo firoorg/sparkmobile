@@ -310,59 +310,11 @@ COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct) {
 }
 
 /*
- * CCSparkMintMeta factory.
- *
- * A CSparkMintMeta is a struct that contains a height, id, isUsed, txid, diversifier, encrypted
- * diversifier, value, nonce, memo, serial context, type, and coin.  We accept these as a
- * CCSparkMintMeta from the Dart interface, and convert them to a C++ CSparkMintMeta struct.
- */
-CCSparkMintMeta createCCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed, const char* txid, const uint64_t diversifier, const char* encryptedDiversifier, const uint64_t value, const char* nonce, const char* memo, const unsigned char* serial_context, const int serial_contextLength, const char type, const CCoin coin) {
-	CCSparkMintMeta c_struct;
-	c_struct.height = height;std::string idStr = std::to_string(id);
-	const char* idCStr = idStr.c_str();
-	c_struct.id = strdup(idCStr);
-	c_struct.isUsed = isUsed;
-	c_struct.txid = strdup(txid);
-	c_struct.i = diversifier;
-	char* encryptedDiversifierCStr = strdup(encryptedDiversifier);
-	c_struct.d = (unsigned char*)encryptedDiversifierCStr;
-	c_struct.v = value;
-	char* nonceCStr = strdup(nonce);
-	c_struct.k = (unsigned char*)nonceCStr;
-	c_struct.memo = strdup(memo);
-
-	std::vector<unsigned char> serial_context_vec(serial_contextLength);
-	std::memcpy(serial_context_vec.data(), serial_context, serial_contextLength);
-	c_struct.serial_context = serial_context_vec.data();
-	c_struct.serial_contextLength = serial_context_vec.size();
-
-	c_struct.type = type;
-	c_struct.coin = coin;
-	return c_struct;
-}
-
-/*
  * CSparkMintMeta factory.
  *
  * A CSparkMintMeta is a C++ struct that contains a height, id, isUsed, txid, diversifier, encrypted
  * diversifier, value, nonce, memo, serial context, type, and coin.  We accept these as a
- * CCSparkMintMeta from the Dart interface, and convert them to a C++ CSparkMintMeta struct.
- *
- * CSparkMintMeta looks like:
- *
-    int nHeight;
-    int nId;
-    bool isUsed;
-    uint256 txid;
-    uint64_t i; // diversifier
-    std::vector<unsigned char> d; // encrypted diversifier
-    uint64_t v; // value
-    Scalar k; // nonce
-    std::string memo; // memo
-    std::vector<unsigned char> serial_context;
-    char type;
-    spark::Coin coin;
-    mutable boost::optional<uint256> nonceHash;
+ * CCSparkMintMeta from the Dart interface and convert them to a C++ CSparkMintMeta struct.
  */
 CSparkMintMeta createCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed,
 									const char* txidStr, const uint64_t diversifier,
@@ -406,6 +358,90 @@ CSparkMintMeta createCSparkMintMeta(const uint64_t height, const uint64_t id, co
 	cpp_struct.coin = fromFFI(coin);
 
 	return cpp_struct;
+}
+
+/*
+ * Utility function to convert a C++ CSparkMintMeta struct to an FFI-friendly C CCSparkMintMeta.
+ */
+CSparkMintMeta fromFFI(const CCSparkMintMeta& c_struct) {
+	CSparkMintMeta cpp_struct;
+	cpp_struct.nHeight = c_struct.height;
+	cpp_struct.nId = std::stoull(c_struct.id);
+	cpp_struct.isUsed = c_struct.isUsed;
+	cpp_struct.txid = uint256S(c_struct.txid);
+	cpp_struct.i = c_struct.i;
+	cpp_struct.d = std::vector<unsigned char>(c_struct.d, c_struct.d + c_struct.dLength);
+	cpp_struct.v = c_struct.v;
+	cpp_struct.k = Scalar(std::vector<unsigned char>(c_struct.k, c_struct.k + c_struct.kLength));
+	cpp_struct.memo = std::string(c_struct.memo);
+	cpp_struct.serial_context = std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_context + c_struct.serial_contextLength);
+	cpp_struct.type = c_struct.type;
+	cpp_struct.coin = fromFFI(c_struct.coin);
+	return cpp_struct;
+}
+
+/*
+ * CCSparkMintMeta factory.
+ *
+ * A CSparkMintMeta is a struct that contains a height, id, isUsed, txid, diversifier, encrypted
+ * diversifier, value, nonce, memo, serial context, type, and coin.  We accept these as a
+ * CCSparkMintMeta from the Dart interface, and convert them to a C++ CSparkMintMeta struct.
+ */
+CCSparkMintMeta createCCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed, const char* txid, const uint64_t diversifier, const char* encryptedDiversifier, const uint64_t value, const char* nonce, const char* memo, const unsigned char* serial_context, const int serial_contextLength, const char type, const CCoin coin) {
+	CCSparkMintMeta c_struct;
+	c_struct.height = height;std::string idStr = std::to_string(id);
+	const char* idCStr = idStr.c_str();
+	c_struct.id = strdup(idCStr);
+	c_struct.isUsed = isUsed;
+	c_struct.txid = strdup(txid);
+	c_struct.i = diversifier;
+	char* encryptedDiversifierCStr = strdup(encryptedDiversifier);
+	c_struct.d = (unsigned char*)encryptedDiversifierCStr;
+	c_struct.v = value;
+	char* nonceCStr = strdup(nonce);
+	c_struct.k = (unsigned char*)nonceCStr;
+	c_struct.memo = strdup(memo);
+
+	std::vector<unsigned char> serial_context_vec(serial_contextLength);
+	std::memcpy(serial_context_vec.data(), serial_context, serial_contextLength);
+	c_struct.serial_context = serial_context_vec.data();
+	c_struct.serial_contextLength = serial_context_vec.size();
+
+	c_struct.type = type;
+	c_struct.coin = coin;
+	return c_struct;
+}
+
+/*
+ * Utility function to convert an FFI-friendly C CCSparkMintMeta struct to a C++ CSparkMintMeta.
+ */
+CCSparkMintMeta toFFI(const CSparkMintMeta& cpp_struct) {
+	CCSparkMintMeta c_struct;
+
+	c_struct.height = cpp_struct.nHeight;
+	std::string idStr = std::to_string(cpp_struct.nId);
+	const char* idCStr = idStr.c_str();
+	c_struct.id = strdup(idCStr);
+	c_struct.isUsed = cpp_struct.isUsed;
+	c_struct.txid = strdup(cpp_struct.txid.ToString().c_str());
+	c_struct.i = cpp_struct.i;
+	c_struct.d = copyBytes(cpp_struct.d.data(), cpp_struct.d.size());
+	c_struct.dLength = cpp_struct.d.size();
+	c_struct.v = cpp_struct.v;
+	std::vector<unsigned char> kBytes(32);
+	cpp_struct.k.serialize(kBytes.data());
+	c_struct.k = copyBytes(kBytes.data(), kBytes.size());
+
+	c_struct.kLength = kBytes.size();
+
+	c_struct.memo = strdup(cpp_struct.memo.c_str());
+	c_struct.serial_context = copyBytes(cpp_struct.serial_context.data(),
+										cpp_struct.serial_context.size());
+	c_struct.serial_contextLength = cpp_struct.serial_context.size();
+	c_struct.type = cpp_struct.type;
+	c_struct.coin = toFFI(cpp_struct.coin);
+
+	return c_struct;
 }
 
 /*

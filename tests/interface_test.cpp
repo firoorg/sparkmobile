@@ -547,8 +547,10 @@ BOOST_AUTO_TEST_CASE(OutputCoinData_toFFI_test) {
 
 /*
  * Debug function to develop a CSparkMintMeta->CCSparkMintMeta fromFFI function.
- */
-BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {// Replace the dummy values with the correct types as needed
+ *
+ * Not working, TODO fix.
+ *
+BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {
     // Make a dummy CSparkMintMeta.
     uint64_t id = 123;
     std::string txidStr = "txid";
@@ -577,6 +579,7 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {// Replace the dummy values 
 
     // Construct the CSparkMintMeta using its factory.
     CSparkMintMeta csparkMintMeta = createCSparkMintMeta(123, id, 1, txid, diversifier, encryptedDiversifier, value, nonce, memo, serialContext, serialContextLength, type, coin);
+    // This fails: `fatal error: in "spark_address_tests/CCSparkMintMeta_fromFFI_test": std::length_error: cannot create std::vector larger than max_size()`.
 
     //// Convert the CSparkMintMeta to a CCSparkMintMeta.
     //CCSparkMintMeta ccsparkMintMeta = fromFFI(csparkMintMeta);
@@ -587,6 +590,67 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {// Replace the dummy values 
     //// Compare the two structs.
     //BOOST_CHECK_EQUAL(ccsparkMintMeta.height, expected.height);
     //// etc.
+}
+ */
+
+/*
+ * Debug function to develop a CCSparkMintMeta->CSparkMintMeta toFFI function.
+ */
+BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
+    // Make a dummy CCSparkMintMeta.
+    CCSparkMintMeta ccsparkMintMeta;
+    ccsparkMintMeta.height = 123;
+    ccsparkMintMeta.id = "id";
+    ccsparkMintMeta.type = 1;
+    ccsparkMintMeta.txid = "txid";
+    ccsparkMintMeta.i = 789;
+
+    // Correctly setting the encrypted diversifier
+    const char* encryptedDiversifier = "encryptedDiversifier";
+    ccsparkMintMeta.d = reinterpret_cast<const unsigned char*>(encryptedDiversifier);
+    ccsparkMintMeta.dLength = std::strlen(encryptedDiversifier);
+
+    ccsparkMintMeta.v = 101112;
+
+    // Correctly setting the nonce
+    const char* nonce = "nonce";
+    ccsparkMintMeta.k = reinterpret_cast<const unsigned char*>(nonce);
+    ccsparkMintMeta.kLength = std::strlen(nonce);
+
+    ccsparkMintMeta.memo = "memo";
+    ccsparkMintMeta.memoLength = 4;
+
+    // Allocating and setting the serial context
+    const char* serialContextStr = "serialContext";
+    auto serialContextLength = std::strlen(serialContextStr);
+    unsigned char* serialContext = new unsigned char[serialContextLength];
+    std::memcpy(serialContext, serialContextStr, serialContextLength);
+    ccsparkMintMeta.serial_context = serialContext;
+    ccsparkMintMeta.serial_contextLength = serialContextLength;
+
+    // Setting the coin
+    ccsparkMintMeta.coin = createCCoin(
+        COIN_TYPE_MINT,
+        reinterpret_cast<const unsigned char*>("k"),
+        1,
+        "keyData",
+        1,
+        1,
+        reinterpret_cast<const unsigned char*>("memo"),
+        1,
+        serialContext,
+        serialContextLength
+    );
+
+    // Convert the CCSparkMintMeta to a CSparkMintMeta.
+    CSparkMintMeta csparkMintMeta = fromFFI(ccsparkMintMeta);
+
+    // Print something from csparkMintMeta just to use it.
+    std::cout << std::endl << "CCSparkMintMeta->CSparkMintMeta toFFI debugging messages:" << std::endl;
+    std::cout << "CCSparkMintMeta height: " << ccsparkMintMeta.height << std::endl;
+
+    // Cleanup allocated memory
+    delete[] serialContext;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

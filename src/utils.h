@@ -52,9 +52,13 @@ COutputCoinData createCOutputCoinData(const char* address, uint64_t value, const
 
 COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct);
 
+CSparkMintMeta createCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed, const char* txid, const uint64_t diversifier, const char* encryptedDiversifier, const uint64_t value, const char* nonce, const char* memo, const unsigned char* serialContext, const int serialContextLength, const char type, const CCoin coin);
+
+CSparkMintMeta fromFFI(const CCSparkMintMeta& c_struct);
+
 CCSparkMintMeta createCCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed, const char* txid, const uint64_t diversifier, const char* encryptedDiversifier, const uint64_t value, const char* nonce, const char* memo, const unsigned char* serialContext, const int serialContextLength, const char type, const CCoin coin);
 
-CSparkMintMeta createCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed, const char* txid, const uint64_t diversifier, const char* encryptedDiversifier, const uint64_t value, const char* nonce, const char* memo, const unsigned char* serialContext, const int serialContextLength, const char type, const CCoin coin);
+CCSparkMintMeta toFFI(const CSparkMintMeta& cpp_struct);
 
 char const hexArray[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
 						   'e', 'f'};
