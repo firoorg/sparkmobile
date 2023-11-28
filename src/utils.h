@@ -12,11 +12,13 @@ const char* getAddressFromData(const char* keyData, int index, const uint64_t di
 
 spark::SpendKey createSpendKeyFromData(const char *keyData, int index);
 
-spark::Coin fromFFI(CDataStream& coinStream);
+spark::Coin fromFFI(const CCoin& c_struct);
+
+CCoin toFFI(const spark::Coin& cpp_struct);
 
 struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength);
 
-CDataStream toFFI(const spark::Coin& coin);
+CCoin toFFI(const spark::Coin& cpp_struct);
 
 spark::IdentifiedCoinData fromFFI(const CIdentifiedCoinData& c_struct);
 

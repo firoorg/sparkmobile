@@ -74,19 +74,40 @@ struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const c
 /*
  * Utility function to convert an FFI-friendly C CCoin struct to a C++ Coin struct.
  */
-spark::Coin fromFFI(CDataStream& coinStream) {
-	spark::Coin coin;
-	coinStream >> coin;
-	return coin;
+spark::Coin fromFFI(const CCoin& c_struct) {
+	spark::Coin cpp_struct(
+		// The test params are only used for unit tests.
+		spark::Params::get_default(),
+		c_struct.type,
+		spark::Scalar(c_struct.k),
+		spark::Address(spark::IncomingViewKey(spark::FullViewKey(createSpendKeyFromData(c_struct.keyData, c_struct.index))), c_struct.index),
+		c_struct.v,
+		std::string(reinterpret_cast<const char*>(c_struct.memo), c_struct.memoLength),
+		std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_context + c_struct.serial_contextLength)
+	);
+
+	return cpp_struct;
 }
 
 /*
  * Utility function to convert a C++ Coin struct to an FFI-friendly C CCoin struct.
  */
-CDataStream toFFI(const spark::Coin& coin) {
-	CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-	stream << coin;
-	return stream;
+CCoin toFFI(const spark::Coin& cpp_struct) {
+	CCoin c_struct;
+
+	c_struct.type = cpp_struct.type;
+	cpp_struct.
+	c_struct.k = cpp_struct. copyBytes(cpp_struct.k.data(), cpp_struct.k.size());
+	c_struct.kLength = cpp_struct.k.size();
+	c_struct.keyData = strdup(cpp_struct.address.incoming_view_key.full_view_key.spend_key.data());
+	c_struct.index = cpp_struct.diversifier;
+	c_struct.v = cpp_struct.v;
+	c_struct.memo = copyBytes(cpp_struct.memo.data(), cpp_struct.memo.size());
+	c_struct.memoLength = cpp_struct.memo.size();
+	c_struct.serial_context = copyBytes(cpp_struct.serial_context.data(), cpp_struct.serial_context.size());
+	c_struct.serial_contextLength = cpp_struct.serial_context.size();
+
+	return c_struct;
 }
 
 /*
