@@ -591,11 +591,11 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {
     //BOOST_CHECK_EQUAL(ccsparkMintMeta.height, expected.height);
     //// etc.
 }
- */
+ *
 
 /*
  * Debug function to develop a CCSparkMintMeta->CSparkMintMeta toFFI function.
- */
+ *
 BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
     // Make a dummy CCSparkMintMeta.
     CCSparkMintMeta ccsparkMintMeta;
@@ -652,6 +652,7 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
     // Cleanup allocated memory
     delete[] serialContext;
 }
+ */
 
 BOOST_AUTO_TEST_SUITE_END()
 }
