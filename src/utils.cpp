@@ -310,6 +310,38 @@ COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct) {
 }
 
 /*
+ * CCSparkMintMeta factory.
+ *
+ * A CSparkMintMeta is a struct that contains a height, id, isUsed, txid, diversifier, encrypted
+ * diversifier, value, nonce, memo, serial context, type, and coin.  We accept these as a
+ * CCSparkMintMeta from the Dart interface, and convert them to a C++ CSparkMintMeta struct.
+ */
+CCSparkMintMeta createCCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed, const char* txid, const uint64_t diversifier, const char* encryptedDiversifier, const uint64_t value, const char* nonce, const char* memo, const unsigned char* serial_context, const int serial_contextLength, const char type, const CCoin coin) {
+	CCSparkMintMeta c_struct;
+	c_struct.height = height;std::string idStr = std::to_string(id);
+	const char* idCStr = idStr.c_str();
+	c_struct.id = strdup(idCStr);
+	c_struct.isUsed = isUsed;
+	c_struct.txid = strdup(txid);
+	c_struct.i = diversifier;
+	char* encryptedDiversifierCStr = strdup(encryptedDiversifier);
+	c_struct.d = (unsigned char*)encryptedDiversifierCStr;
+	c_struct.v = value;
+	char* nonceCStr = strdup(nonce);
+	c_struct.k = (unsigned char*)nonceCStr;
+	c_struct.memo = strdup(memo);
+
+	std::vector<unsigned char> serial_context_vec(serial_contextLength);
+	std::memcpy(serial_context_vec.data(), serial_context, serial_contextLength);
+	c_struct.serial_context = serial_context_vec.data();
+	c_struct.serial_contextLength = serial_context_vec.size();
+
+	c_struct.type = type;
+	c_struct.coin = coin;
+	return c_struct;
+}
+
+/*
  * CSparkMintMeta factory.
  *
  * A CSparkMintMeta is a C++ struct that contains a height, id, isUsed, txid, diversifier, encrypted

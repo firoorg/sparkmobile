@@ -124,4 +124,30 @@ struct COutputCoinData {
     const char* memo;
 };
 
+/*
+ * FFI-friendly wrapper for a spark::CSparkMintMeta.
+ *
+ * A CSparkMintMeta is a struct that contains a height, id, isUsed, txid, diversifier, encrypted
+ * diversifier, value, nonce, memo, serial context, type, and coin.  We accept these as a
+ * CCSparkMintMeta from the Dart interface, and convert them to a C++ CSparkMintMeta struct.
+ */
+struct CCSparkMintMeta {
+    uint64_t height;
+    const char* id;
+    int isUsed;
+    const char* txid;
+    uint64_t i; // Diversifier.
+    const unsigned char* d; // Encrypted diversifier.
+    int dLength;
+    uint64_t v; // Value.
+    const unsigned char* k; // Nonce.
+    int kLength;
+    const char* memo;
+    int memoLength;
+    unsigned char* serial_context;
+    int serial_contextLength;
+    char type;
+    CCoin coin;
+};
+
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H
