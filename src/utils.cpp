@@ -90,6 +90,27 @@ spark::Coin fromFFI(const CCoin& c_struct) {
 }
 
 /*
+ * Utility function to convert a C++ Coin struct to an FFI-friendly C CCoin struct.
+ */
+CCoin toFFI(const spark::Coin& cpp_struct) {
+	CCoin c_struct;
+
+	c_struct.type = cpp_struct.type;
+	cpp_struct.
+	c_struct.k = cpp_struct. copyBytes(cpp_struct.k.data(), cpp_struct.k.size());
+	c_struct.kLength = cpp_struct.k.size();
+	c_struct.keyData = strdup(cpp_struct.address.incoming_view_key.full_view_key.spend_key.data());
+	c_struct.index = cpp_struct.diversifier;
+	c_struct.v = cpp_struct.v;
+	c_struct.memo = copyBytes(cpp_struct.memo.data(), cpp_struct.memo.size());
+	c_struct.memoLength = cpp_struct.memo.size();
+	c_struct.serial_context = copyBytes(cpp_struct.serial_context.data(), cpp_struct.serial_context.size());
+	c_struct.serial_contextLength = cpp_struct.serial_context.size();
+
+	return c_struct;
+}
+
+/*
  * Utility function to convert a C++ IdentifiedCoinData struct to an FFI-friendly struct.
  */
 CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct) {
@@ -372,7 +393,7 @@ CSparkMintMeta fromFFI(const CCSparkMintMeta& c_struct) {
 	cpp_struct.i = c_struct.i;
 	cpp_struct.d = std::vector<unsigned char>(c_struct.d, c_struct.d + c_struct.dLength);
 	cpp_struct.v = c_struct.v;
-	cpp_struct.k = Scalar(std::vector<unsigned char>(c_struct.k, c_struct.k + c_struct.kLength));
+	cpp_struct.k = bytesToScalar(c_struct.k, c_struct.kLength);
 	cpp_struct.memo = std::string(c_struct.memo);
 	cpp_struct.serial_context = std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_context + c_struct.serial_contextLength);
 	cpp_struct.type = c_struct.type;
@@ -455,6 +476,19 @@ unsigned char* copyBytes(const unsigned char* source, int length) {
     unsigned char* dest = new unsigned char[length];
     std::memcpy(dest, source, length);
     return dest;
+}
+
+/*
+ * Utility function to convert a byte array to a Scalar.
+ *
+ * Used by CSparkMintMeta fromFFI.
+ */
+Scalar bytesToScalar(const unsigned char* bytes, int size) {
+	if (bytes == nullptr || size <= 0) {
+		throw std::invalid_argument("Invalid byte array for Scalar conversion.");
+	}
+	// Assuming Scalar can be constructed from a byte array.
+	return Scalar(bytes);
 }
 
 unsigned char *hexToBytes(const char *hexstr) {

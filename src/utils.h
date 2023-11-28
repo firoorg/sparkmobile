@@ -18,6 +18,8 @@ CCoin toFFI(const spark::Coin& cpp_struct);
 
 struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength);
 
+CCoin toFFI(const spark::Coin& cpp_struct);
+
 spark::IdentifiedCoinData fromFFI(const CIdentifiedCoinData& c_struct);
 
 CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct);
@@ -64,6 +66,8 @@ char const hexArray[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a'
 						   'e', 'f'};
 
 unsigned char* copyBytes(const unsigned char* source, int length);
+
+Scalar bytesToScalar(const unsigned char* bytes, int size);
 
 unsigned char *hexToBytes(const char *str);
 

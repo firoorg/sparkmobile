@@ -33,6 +33,8 @@ const char* createIncomingViewKey(const char* keyData, int index);
  *
  * A Coin is a type, a key, an index, a value, a memo, and a serial context.  We accept these params
  * as a C struct, deriving the key from the keyData and index.
+ *
+ * TODO replace keyData and index with just an address which we decode.
  */
 struct CCoin {
     char type;
