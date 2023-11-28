@@ -63,9 +63,11 @@ BOOST_AUTO_TEST_CASE(getAddress_test) {
  * Debug function to develop a CCoin->Coin fromFFI (formerly convertToCppStruct).
  */
 BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
-    const char* keyDataHex = "0000000000000000000000000000000000000000000000000000000000000000"; // Example key data in hex.
-    int index = 1;
+    // const char* keyDataHex = "0000000000000000000000000000000000000000000000000000000000000000"; // Example key data in hex.
+    // int index = 1;
     // int diversifier = 0;
+    // Instead of passing these values, we just pass an address.
+    const char* address = "st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373";
 
     // Generate a random nonce k and serialize it to byte array.
     Scalar k;
@@ -81,8 +83,7 @@ BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
         COIN_TYPE_MINT,
         kBytes.data(),
         static_cast<int>(kBytes.size()),
-        keyDataHex,
-        index,
+        address,
         v,
         reinterpret_cast<const unsigned char*>(memo.c_str()),
         static_cast<int>(memo.size()),
@@ -106,6 +107,8 @@ BOOST_AUTO_TEST_CASE(Coin_fromFFI_test) {
     std::cout << "CCoin serial_context: " << bytesToHex(ccoin.serial_context, ccoin.serial_contextLength) << std::endl;
     std::cout << "Coin  serial_context: " << bytesToHex(coin.serial_context, coin.serial_context.size()) << std::endl;
 }
+
+// TODO Coin->CCoin toFFI.
 
 /*
  * Debug function to develop a IdentifiedCoinData->CIdentifiedCoinData toFFI (formerly convertToCStruct).
@@ -140,6 +143,7 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     // Make a dummy CCoin.
     const char* keyDataHex = "0000000000000000000000000000000000000000000000000000000000000000"; // Example key data in hex.
     int index = 1;
+    const char* address = "st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373";
 
     // Derive a SpendKey spendKey from the keyDataHex and index.
     SpendKey spendKey = createSpendKeyFromData(keyDataHex, index);
@@ -162,8 +166,7 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
         COIN_TYPE_MINT,
         scalarBytes.data(),
         static_cast<int>(scalarBytes.size()),
-        keyDataHex,
-        index,
+        address,
         v,
         reinterpret_cast<const unsigned char*>(memo.c_str()),
         static_cast<int>(memo.size()),
@@ -184,7 +187,6 @@ BOOST_AUTO_TEST_CASE(identifyCoin_test) {
     // BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.k, identifiedCoinData.k.serialize().data());
     // BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memo, identifiedCoinData.memo.c_str());
     BOOST_CHECK_EQUAL(identifiedCoinDataFromInterface.memoLength, identifiedCoinData.memo.size());
-
 
     // Output the addresses for debugging.
     std::cout << std::endl << "identifyCoin debugging messages:" << std::endl;

@@ -56,13 +56,12 @@ spark::SpendKey createSpendKeyFromData(const char *keyData, int index) {
  *
  * TODO manage the memory allocated by this function.
  */
-struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* keyData, int index, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength) {
+struct CCoin createCCoin(char type, const unsigned char* k, int kLength, const char* address, uint64_t v, const unsigned char* memo, int memoLength, const unsigned char* serial_context, int serial_contextLength) {
 	CCoin coin;
 	coin.type = type;
 	coin.k = copyBytes(k, kLength);
 	coin.kLength = kLength;
-	coin.keyData = strdup(keyData);
-	coin.index = index;
+	coin.address = address;
 	coin.v = v;
 	coin.memo = copyBytes(memo, memoLength);
 	coin.memoLength = memoLength;
@@ -80,7 +79,7 @@ spark::Coin fromFFI(const CCoin& c_struct) {
 		spark::Params::get_default(),
 		c_struct.type,
 		spark::Scalar(c_struct.k),
-		spark::Address(spark::IncomingViewKey(spark::FullViewKey(createSpendKeyFromData(c_struct.keyData, c_struct.index))), c_struct.index),
+		decodeAddress(c_struct.address),
 		c_struct.v,
 		std::string(reinterpret_cast<const char*>(c_struct.memo), c_struct.memoLength),
 		std::vector<unsigned char>(c_struct.serial_context, c_struct.serial_context + c_struct.serial_contextLength)
@@ -95,17 +94,18 @@ spark::Coin fromFFI(const CCoin& c_struct) {
 CCoin toFFI(const spark::Coin& cpp_struct) {
 	CCoin c_struct;
 
-	c_struct.type = cpp_struct.type;
-	cpp_struct.
-	c_struct.k = cpp_struct. copyBytes(cpp_struct.k.data(), cpp_struct.k.size());
-	c_struct.kLength = cpp_struct.k.size();
-	c_struct.keyData = strdup(cpp_struct.address.incoming_view_key.full_view_key.spend_key.data());
-	c_struct.index = cpp_struct.diversifier;
-	c_struct.v = cpp_struct.v;
-	c_struct.memo = copyBytes(cpp_struct.memo.data(), cpp_struct.memo.size());
-	c_struct.memoLength = cpp_struct.memo.size();
-	c_struct.serial_context = copyBytes(cpp_struct.serial_context.data(), cpp_struct.serial_context.size());
-	c_struct.serial_contextLength = cpp_struct.serial_context.size();
+	// We are going to have to use the built-in serialization methods to/from CDataStream instead of
+	// a toFFI as we do for other structs, because I don't see how we can get k from a spark::Coin.
+	//c_struct.type = cpp_struct.type;
+	//c_struct.k = cpp_struct. copyBytes(cpp_struct.k.data(), cpp_struct.k.size());
+	//c_struct.kLength = cpp_struct.
+	//c_struct.keyData = strdup(cpp_struct.address.incoming_view_key.full_view_key.spend_key.data());
+	//c_struct.index = cpp_struct.diversifier;
+	//c_struct.v = cpp_struct.v;
+	//c_struct.memo = copyBytes(cpp_struct.memo.data(), cpp_struct.memo.size());
+	//c_struct.memoLength = cpp_struct.memo.size();
+	//c_struct.serial_context = copyBytes(cpp_struct.serial_context.data(), cpp_struct.serial_context.size());
+	//c_struct.serial_contextLength = cpp_struct.serial_context.size();
 
 	return c_struct;
 }

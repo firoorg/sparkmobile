@@ -52,7 +52,7 @@ const char* getAddress(const char* keyDataHex, int index, int diversifier, int i
  * CIdentifiedCoinData toFFI(const spark::IdentifiedCoinData& cpp_struct) to convert the result back
  * to a C struct.
  *
- * We also need the incoming view key or we need to derive it, so accept keyDataHex and index.
+ * We also need the incoming view key or CCoin we need to derive it, so accept keyDataHex and index.
  */
 EXPORT_DART
 struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDataHex, int index) {

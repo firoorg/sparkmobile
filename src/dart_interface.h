@@ -40,8 +40,7 @@ struct CCoin {
     char type;
     const unsigned char* k;
     int kLength;
-    const char* keyData;
-    int index;
+    const char* address;
     uint64_t v;
     const unsigned char* memo;
     int memoLength;
