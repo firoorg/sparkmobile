@@ -83,38 +83,44 @@ struct CCRecipient* createSparkMintRecipients(
         const char* memo,
         int subtractFee)
 {
-    try {
-        std::vector<CRecipient> recipients;
+    // Construct vector of spark::MintedCoinData.
+    std::vector<spark::MintedCoinData> outputs;
 
-        for (int i = 0; i < numRecipients; i++) {
-            CScript scriptPubKey = createCScriptFromBytes(
+    for (int i = 0; i < numRecipients; i++) {
+        // Get CScript from PubKeyScript.
+        CScript script = createCScriptFromBytes(
                 pubKeyScripts[i].bytes,
                 pubKeyScripts[i].length
-            );
+        );
 
-            CRecipient recipient;
-            recipient.pubKey = scriptPubKey;
+        // Convert script to string.
+        std::vector<unsigned char> scriptBytes = serializeCScript(script);
+        std::string scriptString(scriptBytes.begin(), scriptBytes.end());
 
-            recipient.amount = amounts[i];
+        // Decode string into Address.
+        spark::Address address = decodeAddress(scriptString);
 
-            recipient.subtractFeeFromAmount = (bool)subtractFee;
+        // Construct MintedCoinData.
+        spark::MintedCoinData mintedCoinData;
+        mintedCoinData.address = address;
+        mintedCoinData.v = amounts[i];
+        mintedCoinData.memo = memo;
 
-            recipients.push_back(recipient);
-        }
-
-        std::vector<CCRecipient> ccRecipients;
-
-        for (const CRecipient& recipient : recipients) {
-            CCRecipient ccRecipient = toFFI(recipient);
-            ccRecipients.push_back(ccRecipient);
-        }
-
-        CCRecipient* result = new CCRecipient[numRecipients];
-        std::copy(ccRecipients.begin(), ccRecipients.end(), result);
-
-        return result;
-    } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
-        return nullptr;
+        // Add to outputs vector
+        outputs.push_back(mintedCoinData);
     }
+
+    // Call spark::createSparkMintRecipients.
+    std::vector<CRecipient> recipients = createSparkMintRecipients(outputs, blankSerialContext, generate);
+
+    // Create a CRecipient* array.
+    CCRecipient* cRecipients = new CCRecipient[recipients.size()];
+
+    // Copy the data from the vector to the array.
+    for (int i = 0; i < recipients.size(); i++) {
+        cRecipients[i] = toFFI(recipients[i]);
+    }
+
+    // Return the array.
+    return cRecipients;
 }
