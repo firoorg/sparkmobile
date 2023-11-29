@@ -149,9 +149,19 @@ struct CCSparkMintMeta {
     int serial_contextLength;
     char type;
     CDataStream coin;
-    
+
     CCSparkMintMeta(uint64_t height, const char* id, int isUsed, const char* txid, uint64_t i, const unsigned char* d, int dLength, uint64_t v, const unsigned char* k, int kLength, const char* memo, int memoLength, unsigned char* serial_context, int serial_contextLength, char type, const CDataStream& coinData);
     ~CCSparkMintMeta();
+};
+
+/*
+ * FFI-friendly wrapper for a spark::CoverSetData.
+ */
+struct CCoverSetData {
+    CDataStream** cover_set; // vs. struct CCoin* cover_set;
+    int cover_setLength;
+    const unsigned char* cover_set_representation;
+    int cover_set_representationLength;
 };
 
 #endif //ORG_FIRO_SPARK_DART_INTERFACE_H

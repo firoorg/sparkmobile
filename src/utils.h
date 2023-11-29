@@ -62,6 +62,12 @@ CCSparkMintMeta createCCSparkMintMeta(const uint64_t height, const uint64_t id, 
 
 CCSparkMintMeta toFFI(const CSparkMintMeta& cpp_struct);
 
+spark::CoverSetData createCoverSetData(const std::vector<spark::Coin>& cover_set, const std::vector<std::vector<unsigned char>>& cover_set_representations);
+
+spark::CoverSetData fromFFI(const CCoverSetData& c_struct);
+
+CCoverSetData createCCoverSetData(const CCoin* cover_set, const unsigned char* cover_set_representation, const int cover_set_representationLength);
+
 char const hexArray[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
 						   'e', 'f'};
 

@@ -688,14 +688,10 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
     csparkMintMeta.i = 789;
 
     const char* encryptedDiversifier = "encryptedDiversifier";
-    // csparkMintMeta.d = reinterpret_cast<const unsigned char*>(encryptedDiversifier); // This throws `error: no match for ‘operator=’ (operand types are ‘std::vector<unsigned char>’ and ‘const unsigned char*’)`, so:
-    // Set d like:
     std::vector<unsigned char> d;
     for(int i = 0; i < std::strlen(encryptedDiversifier); ++i) {
         d.push_back(encryptedDiversifier[i]);
     }
-    // csparkMintMeta.d = d.data(); // This throws `error: no match for ‘operator=’ (operand types are ‘std::vector<unsigned char>’ and ‘unsigned char*’)`, so:
-    // Set d like:
     csparkMintMeta.d = d;
 
     csparkMintMeta.v = 101112;
@@ -709,8 +705,6 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
     auto serialContextLength = std::strlen(serialContextStr);
     unsigned char* serialContext = new unsigned char[serialContextLength];
     std::memcpy(serialContext, serialContextStr, serialContextLength);
-    // csparkMintMeta.serial_context = serialContext; // This throws `error: no match for ‘operator=’ (operand types are ‘std::vector<unsigned char>’ and ‘unsigned char*’)`, so:
-    // Set serial_context by converting it (a byte array) to a vector.
     std::vector<unsigned char> serialContextVector;
     for(int i = 0; i < serialContextLength; ++i) {
         serialContextVector.push_back(serialContext[i]);
@@ -774,6 +768,78 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
     std::cout << "CCSparkMintMeta id: " << ccsparkMintMeta.id << std::endl;
     std::cout << "CSparkMintMeta id : " << csparkMintMeta.nId << std::endl;
     // Etc.
+}
+
+/*
+ * Debug function to develop a CCoverSetData->CoverSetData fromFFI function.
+ */
+BOOST_AUTO_TEST_CASE(CCoverSetData_fromFFI_test) {
+    // Compare a CoverSetData with a CoverSetData fromFFI(CCoverSetData).
+
+    // Make a dummy Coin for use in the CoverSetData.
+    const char* address = "st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373";
+
+    // Generate a random nonce k and serialize it to byte array.
+    Scalar k;
+    k.randomize();
+    std::vector<unsigned char> kBytes(32); // Scalar is typically 32 bytes.
+    k.serialize(kBytes.data());
+
+    // Construct two Coins.
+    //
+    // Make CCoins and convert them to Coins.
+    std::string memo = "Foo";
+    uint64_t v = 123; // Arbitrary value.
+    std::vector<unsigned char> serial_context = {0, 1, 2, 3, 4, 5, 6, 7};
+    CCoin ccoin1 = createCCoin(
+        COIN_TYPE_MINT,
+        kBytes.data(),
+        static_cast<int>(kBytes.size()),
+        address,
+        v,
+        reinterpret_cast<const unsigned char*>(memo.c_str()),
+        static_cast<int>(memo.size()),
+        serial_context.data(),
+        static_cast<int>(serial_context.size())
+    );
+
+    spark::Coin coin1 = fromFFI(ccoin1);
+
+    memo = "Bar";
+    v = 456;
+    CCoin ccoin2 = createCCoin(
+        COIN_TYPE_MINT,
+        kBytes.data(),
+        static_cast<int>(kBytes.size()),
+        address,
+        v,
+        reinterpret_cast<const unsigned char*>(memo.c_str()),
+        static_cast<int>(memo.size()),
+        serial_context.data(),
+        static_cast<int>(serial_context.size())
+    );
+
+    spark::Coin coin2 = fromFFI(ccoin2);
+
+    // Make a dummy CoverSetData using the factory.
+    CoverSetData coverSetData = createCoverSetData(
+        {
+            coin1,
+            coin2
+        },
+        {
+            {0, 1, 2, 3},
+            {4, 5, 6, 7}
+        }
+    );
+     */
+
+    // Make a dummy CCoverSetData using the factory.
+    // TODO
+
+    // Convert the CCoverSetData to a CoverSetData.
+
+    // Compare the two structs.
 }
 
 BOOST_AUTO_TEST_SUITE_END()

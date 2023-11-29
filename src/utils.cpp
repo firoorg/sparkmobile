@@ -513,10 +513,110 @@ CCSparkMintMeta toFFI(const CSparkMintMeta& cpp_struct) {
 }
 
 /*
- * Utility function for deep copying byte arrays.
- *
- * Used by createCCoin.
+ * CoverSetData factory.
  */
+spark::CoverSetData createCoverSetData(
+	const std::vector<spark::Coin>& cover_set,
+   	const std::vector<unsigned char>& cover_set_representations
+) {
+	spark::CoverSetData coverSetData;
+	coverSetData.cover_set = cover_set;
+	coverSetData.cover_set_representation = cover_set_representations;
+	return coverSetData;
+}
+
+/*
+ * Utility function to convert an FFI-friendly C CCoverSetData struct to a C++ CoverSetData.
+ */
+spark::CoverSetData fromFFI(const CCoverSetData& c_struct) {
+	std::vector<spark::Coin> cover_set;
+	std::vector<std::vector<unsigned char>> cover_set_representation;
+
+	for (int i = 0; i < c_struct.cover_setLength; i++) {
+		spark::Coin coin;
+		CDataStream coinStream = *c_struct.cover_set[i];
+		coinStream >> coin;
+		cover_set.emplace_back(coin);
+		cover_set_representation.emplace_back(std::vector<unsigned char>(c_struct.cover_set_representation, c_struct.cover_set_representation + c_struct.cover_set_representationLength));
+	}
+
+	return createCoverSetData(cover_set, cover_set_representation); // This throws:
+}
+
+/*
+ * CCoverSetData factory.
+ */
+CCoverSetData createCCoverSetData(const CCoin* cover_set,
+								  const unsigned char* cover_set_representation,
+								  const int cover_set_representationLength) {
+	std::vector<CDataStream> cover_set_streams;
+
+	for (int i = 0; i < cover_set_representationLength; i++) {
+		// Convert CCoin to Coin.
+		spark::Coin coin = fromFFI(cover_set[i]);
+
+		// Serialize Coin.
+		CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+		stream << coin;
+
+		// Add stream to vector.
+		cover_set_streams.push_back(stream);
+	}
+
+	// Create array containing the address of cover_set_streams
+	CDataStream** cover_set_streams_pp = new CDataStream*[cover_set_representationLength];
+
+	for (int i = 0; i < cover_set_representationLength; i++) {
+		cover_set_streams_pp[i] = &cover_set_streams[i];
+	}
+
+	// Create the CCoverSetData and set the cover_set.
+    CCoverSetData c_struct;
+
+	// Assign the pointer to pointer
+	c_struct.cover_set = cover_set_streams_pp;
+
+	// Assign the cover_set_representation.
+	c_struct.cover_set_representation = cover_set_representation;
+	c_struct.cover_set_representationLength = cover_set_representationLength;
+	return c_struct;
+}
+
+/*
+ * Utility function to convert a C++ CoverSetData struct to an FFI-friendly CCoverSetData.
+ *
+ * We don't need toFFI yet (except to make complete tests...), so let's just comment it out.
+ *
+CCoverSetData toFFI(const spark::CoverSetData& cpp_struct) {
+	CCoverSetData c_struct;
+	// Converting the CCoins to spark::Coins.
+	std::vector<spark::Coin> cover_set;
+	for (int i = 0; i < cpp_struct.cover_set.size(); i++) {
+		cover_set.push_back(fromFFI(cpp_struct.cover_set[i])); // This line throws.
+	}
+
+	// Serialize the spark::Coins as CDataStreams.
+	std::vector<CDataStream> cover_set_streams;
+	for (int i = 0; i < cover_set.size(); i++) {
+		CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+		stream << cover_set[i];
+		cover_set_streams.push_back(stream);
+	}
+
+	// Convert the std::vector<CDataStream> to a CDataStream*.
+	CDataStream* cover_set_streams_array = &cover_set_streams[0];
+
+	c_struct.cover_set_representation = cpp_struct.cover_set_representation.data();
+	c_struct.cover_set_representationLength = cpp_struct.cover_set_representation.size();
+
+	for (int i = 0; i < cpp_struct.cover_set.size(); i++) {
+		c_struct.cover_set[i] = toFFI(cpp_struct.cover_set[i]);
+	}
+
+	return c_struct;
+}
+ */
+
 unsigned char* copyBytes(const unsigned char* source, int length) {
     if (source == nullptr || length <= 0) return nullptr;
 
@@ -525,11 +625,6 @@ unsigned char* copyBytes(const unsigned char* source, int length) {
     return dest;
 }
 
-/*
- * Utility function to convert a byte array to a Scalar.
- *
- * Used by CSparkMintMeta fromFFI.
- */
 Scalar bytesToScalar(const unsigned char* bytes, int size) {
 	if (bytes == nullptr || size <= 0) {
 		throw std::invalid_argument("Invalid byte array for Scalar conversion.");
