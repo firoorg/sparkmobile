@@ -563,7 +563,7 @@ BOOST_AUTO_TEST_CASE(OutputCoinData_fromFFI_test) {
 }
 
 /*
- * Debug function to develop a CSparkMintMeta->CCSparkMintMeta fromFFI function.
+ * Debug function to develop a CCSparkMintMeta->CSparkMintMeta fromFFI function.
  */
 BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {
     // Make a dummy CSparkMintMeta.
@@ -637,21 +637,6 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {
     // Convert the CSparkMintMeta to a CCSparkMintMeta struct.
     CCSparkMintMeta ccsparkMintMeta = toFFI(csparkMintMeta);
 
-    // createCCSparkMintMeta looks like:
-    // const uint64_t height,
-    // const uint64_t id,
-    // const int isUsed,
-    // const char* txid,
-    // const uint64_t diversifier,
-    // const char* encryptedDiversifier,
-    // const uint64_t value,
-    // const char* nonce,
-    // const char* memo,
-    // const unsigned char* serial_context,
-    // const int serial_contextLength,
-    // const char type,
-    // const CCoin coin
-
     // Create the same CCSparkMintMeta struct manually using its factory.
     CCSparkMintMeta expected = createCCSparkMintMeta(
         csparkMintMeta.nHeight,
@@ -660,12 +645,9 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {
         reinterpret_cast<const char*>(txid.GetHex().c_str()),
         csparkMintMeta.i,
         reinterpret_cast<const char*>(d.data()),
-        // reinterpret_cast<const char*>(std::to_string(csparkMintMeta.v).c_str()), // This doesn't work.
-        // Pass a const uint64_t value like:
         csparkMintMeta.v,
         reinterpret_cast<const char*>(kBytes.data()),
         reinterpret_cast<const char*>(memo.c_str()),
-        // Pass serial_context as a `const unsigned char* serial_context` like:
         reinterpret_cast<const unsigned char*>(serialContextStr),
         static_cast<int>(csparkMintMeta.serial_context.size()),
         csparkMintMeta.type,
@@ -679,7 +661,7 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {
     // TODO check more.
 
     // Print some information comparing the CSparkMintMeta and CCSparkMintMeta.
-    std::cout << std::endl << "CSparkMintMeta->CCSparkMintMeta fromFFI debugging messages:" << std::endl;
+    std::cout << std::endl << "CCSparkMintMeta->CSparkMintMeta fromFFI debugging messages:" << std::endl;
     std::cout << "CSparkMintMeta height : " << csparkMintMeta.nHeight << std::endl;
     std::cout << "CCSparkMintMeta height: " << ccsparkMintMeta.height << std::endl;
     std::cout << "CSparkMintMeta id : " << csparkMintMeta.nId << std::endl;
@@ -687,69 +669,112 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_fromFFI_test) {
     std::cout << "CSparkMintMeta type : " << csparkMintMeta.type << std::endl;
     std::cout << "CCSparkMintMeta type: " << ccsparkMintMeta.type << std::endl;
     // Etc.
-
 }
 
 /*
- * Debug function to develop a CCSparkMintMeta->CSparkMintMeta toFFI function.
- *
+ * Debug function to develop a CSparkMintMeta->CCSparkMintMeta toFFI function.
+ */
 BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
-    // Make a dummy CCSparkMintMeta.
-    CCSparkMintMeta ccsparkMintMeta;
-    ccsparkMintMeta.height = 123;
-    ccsparkMintMeta.id = "id";
-    ccsparkMintMeta.type = 1;
-    ccsparkMintMeta.txid = "txid";
-    ccsparkMintMeta.i = 789;
+    // Make a dummy CSparkMintMeta.
+    CSparkMintMeta csparkMintMeta;
+    csparkMintMeta.nHeight = 123;
+    uint256 nID;
+    nID.SetHex("id");
+    csparkMintMeta.nId = std::stoi(nID.GetHex());
+    csparkMintMeta.type = 1;
+    uint256 txid;
+    txid.SetHex("txid");
+    csparkMintMeta.txid = txid;
+    csparkMintMeta.i = 789;
 
-    // Correctly setting the encrypted diversifier
     const char* encryptedDiversifier = "encryptedDiversifier";
-    ccsparkMintMeta.d = reinterpret_cast<const unsigned char*>(encryptedDiversifier);
-    ccsparkMintMeta.dLength = std::strlen(encryptedDiversifier);
+    // csparkMintMeta.d = reinterpret_cast<const unsigned char*>(encryptedDiversifier); // This throws `error: no match for ‘operator=’ (operand types are ‘std::vector<unsigned char>’ and ‘const unsigned char*’)`, so:
+    // Set d like:
+    std::vector<unsigned char> d;
+    for(int i = 0; i < std::strlen(encryptedDiversifier); ++i) {
+        d.push_back(encryptedDiversifier[i]);
+    }
+    // csparkMintMeta.d = d.data(); // This throws `error: no match for ‘operator=’ (operand types are ‘std::vector<unsigned char>’ and ‘unsigned char*’)`, so:
+    // Set d like:
+    csparkMintMeta.d = d;
 
-    ccsparkMintMeta.v = 101112;
+    csparkMintMeta.v = 101112;
 
-    // Correctly setting the nonce
     const char* nonce = "nonce";
-    ccsparkMintMeta.k = reinterpret_cast<const unsigned char*>(nonce);
-    ccsparkMintMeta.kLength = std::strlen(nonce);
+    csparkMintMeta.k = reinterpret_cast<const unsigned char*>(nonce);
 
-    ccsparkMintMeta.memo = "memo";
-    ccsparkMintMeta.memoLength = 4;
+    csparkMintMeta.memo = "memo";
 
-    // Allocating and setting the serial context
     const char* serialContextStr = "serialContext";
     auto serialContextLength = std::strlen(serialContextStr);
     unsigned char* serialContext = new unsigned char[serialContextLength];
     std::memcpy(serialContext, serialContextStr, serialContextLength);
-    ccsparkMintMeta.serial_context = serialContext;
-    ccsparkMintMeta.serial_contextLength = serialContextLength;
+    // csparkMintMeta.serial_context = serialContext; // This throws `error: no match for ‘operator=’ (operand types are ‘std::vector<unsigned char>’ and ‘unsigned char*’)`, so:
+    // Set serial_context by converting it (a byte array) to a vector.
+    std::vector<unsigned char> serialContextVector;
+    for(int i = 0; i < serialContextLength; ++i) {
+        serialContextVector.push_back(serialContext[i]);
+    }
+    csparkMintMeta.serial_context = serialContextVector;
 
-    // Setting the coin
-    ccsparkMintMeta.coin = createCCoin(
+    const char* address = "st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373";
+
+    // Generate a random nonce k and serialize it to byte array.
+    Scalar k;
+    k.randomize();
+    std::vector<unsigned char> kBytes(32); // Scalar is typically 32 bytes.
+    k.serialize(kBytes.data());
+
+    // Construct a CCoin.
+    std::string memo = "Foo";
+    uint64_t v = 123; // arbitrary value
+    std::vector<unsigned char> serial_context = {0, 1, 2, 3, 4, 5, 6, 7};
+    CCoin ccoin = createCCoin(
         COIN_TYPE_MINT,
-        reinterpret_cast<const unsigned char*>("k"),
-        1,
-        "keyData",
-        1,
-        1,
-        reinterpret_cast<const unsigned char*>("memo"),
-        1,
-        serialContext,
-        serialContextLength
+        kBytes.data(),
+        static_cast<int>(kBytes.size()),
+        address,
+        v,
+        reinterpret_cast<const unsigned char*>(memo.c_str()),
+        static_cast<int>(memo.size()),
+        serial_context.data(),
+        static_cast<int>(serial_context.size())
     );
 
-    // Convert the CCSparkMintMeta to a CSparkMintMeta.
-    CSparkMintMeta csparkMintMeta = fromFFI(ccsparkMintMeta);
+    csparkMintMeta.coin = fromFFI(ccoin);
 
-    // Print something from csparkMintMeta just to use it.
-    std::cout << std::endl << "CCSparkMintMeta->CSparkMintMeta toFFI debugging messages:" << std::endl;
+    // Convert the CSparkMintMeta to a CCSparkMintMeta struct.
+    CCSparkMintMeta ccsparkMintMeta = toFFI(csparkMintMeta);
+
+    // Create the same CCSparkMintMeta struct manually using its factory.
+    CCSparkMintMeta expected = createCCSparkMintMeta(
+        csparkMintMeta.nHeight,
+        csparkMintMeta.nId,
+        1, // isUsed.
+        reinterpret_cast<const char*>(txid.GetHex().c_str()),
+        csparkMintMeta.i,
+        reinterpret_cast<const char*>(d.data()),
+        csparkMintMeta.v,
+        reinterpret_cast<const char*>(kBytes.data()),
+        reinterpret_cast<const char*>(memo.c_str()),
+        reinterpret_cast<const unsigned char*>(serialContextStr),
+        static_cast<int>(csparkMintMeta.serial_context.size()),
+        csparkMintMeta.type,
+        ccoin
+    );
+
+    // Compare the two structs.
+    BOOST_CHECK_EQUAL(ccsparkMintMeta.height, expected.height);
+    BOOST_CHECK_EQUAL(ccsparkMintMeta.id, expected.id);
+
+    // Print some information comparing the CSparkMintMeta and CCSparkMintMeta.
+    std::cout << std::endl << "CSparkMintMeta->CCSparkMintMeta toFFI debugging messages:" << std::endl;
     std::cout << "CCSparkMintMeta height: " << ccsparkMintMeta.height << std::endl;
-
-    // Cleanup allocated memory
-    delete[] serialContext;
+    std::cout << "CSparkMintMeta height : " << csparkMintMeta.nHeight << std::endl;
+    std::cout << "CCSparkMintMeta id: " << ccsparkMintMeta.id << std::endl;
+    std::cout << "CSparkMintMeta id : " << csparkMintMeta.nId << std::endl;
+    // Etc.
 }
- */
 
 BOOST_AUTO_TEST_SUITE_END()
 }
