@@ -165,9 +165,9 @@ CRecipient fromFFI(const CCRecipient& c_struct) {
 	CScript script = createCScriptFromBytes(c_struct.pubKey, c_struct.pubKeyLength);
 
 	CRecipient cpp_struct = createCRecipient(
-			script,
-			c_struct.cAmount,
-			static_cast<bool>(c_struct.subtractFee)
+		script,
+		c_struct.cAmount,
+		static_cast<bool>(c_struct.subtractFee)
 	);
 
     return cpp_struct;
@@ -530,17 +530,17 @@ spark::CoverSetData createCoverSetData(
  */
 spark::CoverSetData fromFFI(const CCoverSetData& c_struct) {
 	std::vector<spark::Coin> cover_set;
-	std::vector<std::vector<unsigned char>> cover_set_representation;
 
 	for (int i = 0; i < c_struct.cover_setLength; i++) {
 		spark::Coin coin;
 		CDataStream coinStream = *c_struct.cover_set[i];
 		coinStream >> coin;
 		cover_set.emplace_back(coin);
-		cover_set_representation.emplace_back(std::vector<unsigned char>(c_struct.cover_set_representation, c_struct.cover_set_representation + c_struct.cover_set_representationLength));
 	}
 
-	return createCoverSetData(cover_set, cover_set_representation); // This throws:
+	std::vector<unsigned char> cover_set_representation(c_struct.cover_set_representation, c_struct.cover_set_representation + c_struct.cover_set_representationLength);
+
+	return createCoverSetData(cover_set, cover_set_representation);
 }
 
 /*
@@ -585,7 +585,8 @@ CCoverSetData createCCoverSetData(const CCoin* cover_set,
 /*
  * Utility function to convert a C++ CoverSetData struct to an FFI-friendly CCoverSetData.
  *
- * We don't need toFFI yet (except to make complete tests...), so let's just comment it out.
+ * This throws.  We don't need toFFI yet (except to make complete tests...), so let's just comment
+ * it out.
  *
 CCoverSetData toFFI(const spark::CoverSetData& cpp_struct) {
 	CCoverSetData c_struct;

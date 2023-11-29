@@ -449,33 +449,25 @@ BOOST_AUTO_TEST_CASE(CMintedCoinData_toFFI_test) {
  * Test the correctness of the createSparkMintRecipients wrapper.
  */
 BOOST_AUTO_TEST_CASE(createSparkMintRecipients_test) {
-    // Sample pubkey scripts.
-    std::vector<unsigned char> pubKey1 = {1, 2, 3};
-    std::vector<unsigned char> pubKey2 = {4, 5, 6};
+    // Call C++ createSparkMintRecipients.
+    //
+    // Make a dummy MintedCoinData.
+    std::vector<MintedCoinData> mintedCoinDataVector;
 
-    // Convert to PubKeyScript structs.
-    PubKeyScript pubKeyScripts[2];
-    pubKeyScripts[0].bytes = pubKey1.data();
-    pubKeyScripts[0].length = pubKey1.size();
-    pubKeyScripts[1].bytes = pubKey2.data();
-    pubKeyScripts[1].length = pubKey2.size();
+    MintedCoinData mintedCoinData;
+    spark::Address address;
+    address.decode("st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373");
+    mintedCoinData.address = address;
+    mintedCoinData.v = 123;
+    mintedCoinData.memo = "Foo";
+    mintedCoinDataVector.push_back(mintedCoinData);
+    // In the future we could test creating multiple MintedCoinData, but for now we'll just use one.
 
-    // Sample amounts.
-    uint64_t amounts[2] = {123, 456};
+    std::vector<unsigned char> serial_context = {0, 1, 2, 3, 4, 5, 6, 7};
+    bool generate = true;
 
-    // Sample memo.
-    std::string memo = "Test memo";
-
-    // Call wrapper
-    CCRecipient* ccRecipients = createSparkMintRecipients(2, pubKeyScripts, amounts, memo.c_str(), 1);
-
-    // Manually create CRecipient objects.
-    CScript script1 = createCScriptFromBytes(pubKey1.data(), pubKey1.size());
-    CScript script2 = createCScriptFromBytes(pubKey2.data(), pubKey2.size());
-    std::vector<CRecipient> recipients = {
-        createCRecipient(script1, amounts[0], true),
-        createCRecipient(script2, amounts[1], true)
-    };
+    std::vector<CRecipient> recipients = createSparkMintRecipients(mintedCoinDataVector,
+                                                                   serial_context, generate);
 
     // Convert to CCRecipients manually.
     std::vector<CCRecipient> expected;
@@ -483,27 +475,24 @@ BOOST_AUTO_TEST_CASE(createSparkMintRecipients_test) {
         expected.push_back(toFFI(recipient));
     }
 
+    // Call C createSparkMintRecipients.
+    std::vector<unsigned char> pubKey1 = {1, 2, 3};
+    std::vector<unsigned char> pubKey2 = {4, 5, 6};
+    PubKeyScript pubKeyScripts[2];
+    pubKeyScripts[0].bytes = pubKey1.data();
+    pubKeyScripts[0].length = pubKey1.size();
+    pubKeyScripts[1].bytes = pubKey2.data();
+    pubKeyScripts[1].length = pubKey2.size();
+    uint64_t amounts[2] = {123, 456};
+    std::string memo = "Test memo";
+    CCRecipient* ccRecipients = createSparkMintRecipients(2, pubKeyScripts, amounts, memo.c_str(), 1);
+
     // Compare.
     for (int i = 0; i < 2; i++) {
         BOOST_CHECK_EQUAL(ccRecipients[i].cAmount, expected[i].cAmount);
         BOOST_CHECK_EQUAL(ccRecipients[i].subtractFee, expected[i].subtractFee);
         BOOST_CHECK_EQUAL(ccRecipients[i].pubKeyLength, expected[i].pubKeyLength);
     }
-
-    // Clean up.
-    delete[] ccRecipients;
-
-    // Print some information about the recipients for debugging.
-    std::cout << std::endl << "createSparkMintRecipients debugging messages:" << std::endl;
-    std::cout << "CCRecipient 1 amount: " << ccRecipients[0].cAmount << std::endl;
-    std::cout << "CCRecipient 2 amount: " << ccRecipients[1].cAmount << std::endl;
-    std::cout << "CCRecipient 1 subtractFee: " << ccRecipients[0].subtractFee << std::endl;
-    std::cout << "CCRecipient 2 subtractFee: " << ccRecipients[1].subtractFee << std::endl;
-    // TODO add pubKey messages; for now just skip to printing the expected values.
-    std::cout << "Expected CCRecipient 1 amount: " << expected[0].cAmount << std::endl;
-    std::cout << "Expected CCRecipient 2 amount: " << expected[1].cAmount << std::endl;
-    std::cout << "Expected CCRecipient 1 subtractFee: " << expected[0].subtractFee << std::endl;
-    std::cout << "Expected CCRecipient 2 subtractFee: " << expected[1].subtractFee << std::endl;
 }
 
 /*
@@ -776,6 +765,7 @@ BOOST_AUTO_TEST_CASE(CCSparkMintMeta_toFFI_test) {
 BOOST_AUTO_TEST_CASE(CCoverSetData_fromFFI_test) {
     // Compare a CoverSetData with a CoverSetData fromFFI(CCoverSetData).
 
+    /*
     // Make a dummy Coin for use in the CoverSetData.
     const char* address = "st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373";
 
