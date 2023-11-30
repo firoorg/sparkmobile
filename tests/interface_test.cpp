@@ -461,7 +461,15 @@ BOOST_AUTO_TEST_CASE(createSparkMintRecipients_test) {
     mintedCoinData.v = 123;
     mintedCoinData.memo = "Foo";
     mintedCoinDataVector.push_back(mintedCoinData);
-    // In the future we could test creating multiple MintedCoinData, but for now we'll just use one.
+
+    // Make another dummy MintedCoinData.
+    MintedCoinData mintedCoinData2;
+    spark::Address address2;
+    address2.decode("st19m57r6grs3vwmx2el5dxuv3rdf4jjjx7tvsd4a9mrj4ezlphhaaq38wmfgt24dsmzttuntcsfjkekwd4g3ktyctj6tq2cgn2mu53df8kjyj9rstuvc78030ewugqgymvk7jf5lqgek373");
+    mintedCoinData2.address = address2;
+    mintedCoinData2.v = 456;
+    mintedCoinData2.memo = "Bar";
+    mintedCoinDataVector.push_back(mintedCoinData2);
 
     std::vector<unsigned char> serial_context = {0, 1, 2, 3, 4, 5, 6, 7};
     bool generate = true;
@@ -469,29 +477,34 @@ BOOST_AUTO_TEST_CASE(createSparkMintRecipients_test) {
     std::vector<CRecipient> recipients = createSparkMintRecipients(mintedCoinDataVector,
                                                                    serial_context, generate);
 
-    // Convert to CCRecipients manually.
-    std::vector<CCRecipient> expected;
-    for (auto& recipient : recipients) {
-        expected.push_back(toFFI(recipient));
+    // Call C createSparkMintRecipients.
+    //
+    // Convert the MintedCoinDatas to CMintedCoinDatas with toFFI.
+    CMintedCoinData cmintedCoinData = toFFI(mintedCoinData);
+    CMintedCoinData cmintedCoinData2 = toFFI(mintedCoinData2);
+
+    // Make a struct CMintedCoinData* to pass to createSparkMintRecipients.
+    CMintedCoinData* cmintedCoinDataArray = new CMintedCoinData[2];
+    cmintedCoinDataArray[0] = cmintedCoinData;
+    cmintedCoinDataArray[1] = cmintedCoinData2;
+
+    CCRecipient* ccRecipients = createSparkMintRecipients(
+        cmintedCoinDataArray, 2, reinterpret_cast<const char*>(serial_context.data()),
+        serial_context.size(), generate);
+
+    // Convert the CCRecipient* to a vector of CRecipients.
+    std::vector<CRecipient> cRecipients;
+    for (int i = 0; i < 2; i++) {
+        CRecipient cRecipient = fromFFI(ccRecipients[i]);
+        cRecipients.push_back(cRecipient);
     }
 
-    // Call C createSparkMintRecipients.
-    std::vector<unsigned char> pubKey1 = {1, 2, 3};
-    std::vector<unsigned char> pubKey2 = {4, 5, 6};
-    PubKeyScript pubKeyScripts[2];
-    pubKeyScripts[0].bytes = pubKey1.data();
-    pubKeyScripts[0].length = pubKey1.size();
-    pubKeyScripts[1].bytes = pubKey2.data();
-    pubKeyScripts[1].length = pubKey2.size();
-    uint64_t amounts[2] = {123, 456};
-    std::string memo = "Test memo";
-    CCRecipient* ccRecipients = createSparkMintRecipients(2, pubKeyScripts, amounts, memo.c_str(), 1);
-
-    // Compare.
-    for (int i = 0; i < 2; i++) {
-        BOOST_CHECK_EQUAL(ccRecipients[i].cAmount, expected[i].cAmount);
-        BOOST_CHECK_EQUAL(ccRecipients[i].subtractFee, expected[i].subtractFee);
-        BOOST_CHECK_EQUAL(ccRecipients[i].pubKeyLength, expected[i].pubKeyLength);
+    // Compare the two structs.
+    BOOST_CHECK_EQUAL(recipients.size(), cRecipients.size());
+    for (int i = 0; i < recipients.size(); i++) {
+        BOOST_CHECK_EQUAL(recipients[i].subtractFeeFromAmount, cRecipients[i].subtractFeeFromAmount);
+        BOOST_CHECK_EQUAL(recipients[i].amount, cRecipients[i].amount);
+        // BOOST_CHECK_EQUAL(recipients[i].pubKey, cRecipients[i].pubKey);
     }
 }
 

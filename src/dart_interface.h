@@ -108,11 +108,11 @@ struct PubKeyScript {
  */
 EXPORT_DART
 struct CCRecipient* createSparkMintRecipients(
-        int numRecipients,
-        struct PubKeyScript* pubKeyScripts,
-        uint64_t* amounts,
-        const char* memo,
-        int subtractFee);
+    struct CMintedCoinData* outputs,
+    int outputsLength,
+    const char* serial_context,
+    int serial_contextLength,
+    int generate);
 
 /*
  * FFI-friendly wrapper for a spark::OutputCoinData.

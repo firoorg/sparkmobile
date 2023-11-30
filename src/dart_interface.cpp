@@ -77,37 +77,26 @@ struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDa
  */
 EXPORT_DART
 struct CCRecipient* createSparkMintRecipients(
-        int numRecipients,
-        struct PubKeyScript* pubKeyScripts,
-        uint64_t* amounts,
-        const char* memo,
-        int subtractFee)
-{
+    struct CMintedCoinData* cOutputs,
+    int outputsLength,
+    const char* serial_context,
+    int serial_contextLength,
+    int generate
+) {
     // Construct vector of spark::MintedCoinData.
     std::vector<spark::MintedCoinData> outputs;
 
-    for (int i = 0; i < numRecipients; i++) {
-        // Get CScript from PubKeyScript.
-        CScript script = createCScriptFromBytes(
-                pubKeyScripts[i].bytes,
-                pubKeyScripts[i].length
-        );
+    // Copy the data from the array to the vector.
+    for (int i = 0; i < outputsLength; i++) {
+        outputs.push_back(fromFFI(cOutputs[i]));
+    }
 
-        // Convert script to string.
-        std::vector<unsigned char> scriptBytes = serializeCScript(script);
-        std::string scriptString(scriptBytes.begin(), scriptBytes.end());
+    // Construct vector of unsigned chars.
+    std::vector<unsigned char> blankSerialContext;
 
-        // Decode string into Address.
-        spark::Address address = decodeAddress(scriptString);
-
-        // Construct MintedCoinData.
-        spark::MintedCoinData mintedCoinData;
-        mintedCoinData.address = address;
-        mintedCoinData.v = amounts[i];
-        mintedCoinData.memo = memo;
-
-        // Add to outputs vector
-        outputs.push_back(mintedCoinData);
+    // Copy the data from the array to the vector.
+    for (int i = 0; i < serial_contextLength; i++) {
+        blankSerialContext.push_back(serial_context[i]);
     }
 
     // Call spark::createSparkMintRecipients.
