@@ -506,6 +506,19 @@ BOOST_AUTO_TEST_CASE(createSparkMintRecipients_test) {
         BOOST_CHECK_EQUAL(recipients[i].amount, cRecipients[i].amount);
         // BOOST_CHECK_EQUAL(recipients[i].pubKey, cRecipients[i].pubKey);
     }
+
+    // Print some information comparing the two structs.
+    std::cout << std::endl << "createSparkMintRecipients debugging messages:" << std::endl;
+    std::cout << "recipients.size() : " << recipients.size() << std::endl;
+    std::cout << "cRecipients.size(): " << cRecipients.size() << std::endl;
+    for (int i = 0; i < recipients.size(); i++) {
+        std::cout << "recipients[" << i << "].subtractFeeFromAmount : " << recipients[i].subtractFeeFromAmount << std::endl;
+        std::cout << "cRecipients[" << i << "].subtractFeeFromAmount: " << cRecipients[i].subtractFeeFromAmount << std::endl;
+        std::cout << "recipients[" << i << "].amount : " << recipients[i].amount << std::endl;
+        std::cout << "cRecipients[" << i << "].amount: " << cRecipients[i].amount << std::endl;
+        // std::cout << "recipients[" << i << "].pubKey : " << recipients[i].pubKey << std::endl;
+        // std::cout << "cRecipients[" << i << "].pubKey: " << cRecipients[i].pubKey << std::endl;
+    }
 }
 
 /*
