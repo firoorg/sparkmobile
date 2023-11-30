@@ -14,9 +14,6 @@
     #endif
 #endif
 
-/*
- * FFI-friendly wrapper for spark::getAddress.
- */
 EXPORT_DART
 const char* getAddress(const char* keyDataHex, int index, int diversifier, int isTestNet);
 
@@ -31,10 +28,7 @@ const char* createIncomingViewKey(const char* keyData, int index);
 /*
  * FFI-friendly wrapper for a spark::Coin.
  *
- * A Coin is a type, a key, an index, a value, a memo, and a serial context.  We accept these params
- * as a C struct, deriving the key from the keyData and index.
- *
- * TODO replace keyData and index with just an address which we decode.
+ * Coin: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/coin.h#L66
  */
 struct CCoin {
     char type;
@@ -51,8 +45,7 @@ struct CCoin {
 /*
  * FFI-friendly wrapper for a spark::IdentifiedCoinData.
  *
- * An IdentifiedCoinData is a diversifier, encrypted diversifier, value, nonce, and memo.  We accept
- * these params as a C struct.
+ * IdentifiedCoinData: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/coin.h#L19
  */
 struct CIdentifiedCoinData {
     uint64_t i;
@@ -67,6 +60,8 @@ struct CIdentifiedCoinData {
 
 /*
  * FFI-friendly wrapper for spark::identifyCoin.
+ *
+ * identifyCoin: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/spark.cpp#L400
  */
 EXPORT_DART
 struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDataHex, int index);
@@ -74,9 +69,7 @@ struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDa
 /*
  * FFI-friendly wrapper for a spark::CRecipient.
  *
- * A CRecipient is a CScript, CAmount, and a bool.  We accept a C-style, FFI-friendly CCRecipient
- * struct in order to construct a C++ CRecipient.  A CScript is constructed from a hex string, a
- * CAmount is just a uint64_t, and the bool will be an int.
+ * CRecipient: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/include/spark.h#L27
  */
 struct CCRecipient {
     const unsigned char* pubKey;
@@ -88,9 +81,7 @@ struct CCRecipient {
 /*
  * FFI-friendly wrapper for a spark::MintedCoinData.
  *
- * A MintedCoinData is a struct that contains an Address, a uint64_t value, and a string memo.  We
- * accept these as a CMintedCoinData from the Dart interface, and convert them to a MintedCoinData
- * struct.
+ * MintedCoinData: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/mint_transaction.h#L12
  */
 struct CMintedCoinData {
     const char* address;
@@ -105,6 +96,8 @@ struct PubKeyScript {
 
 /*
  * FFI-friendly wrapper for spark::createSparkMintRecipients.
+ *
+ * createSparkMintRecipients: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/spark.cpp#L43
  */
 EXPORT_DART
 struct CCRecipient* createSparkMintRecipients(
@@ -117,7 +110,7 @@ struct CCRecipient* createSparkMintRecipients(
 /*
  * FFI-friendly wrapper for a spark::OutputCoinData.
  *
- * An OutputCoinData is an address, value, and memo.  We accept these params as a C struct.
+ * OutputCoinData: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/spend_transaction.h#L33
  */
 struct COutputCoinData {
     const char* address;
@@ -128,9 +121,7 @@ struct COutputCoinData {
 /*
  * FFI-friendly wrapper for a spark::CSparkMintMeta.
  *
- * A CSparkMintMeta is a struct that contains a height, id, isUsed, txid, diversifier, encrypted
- * diversifier, value, nonce, memo, serial context, type, and coin.  We accept these as a
- * CCSparkMintMeta from the Dart interface, and convert them to a C++ CSparkMintMeta struct.
+ * CSparkMintMeta: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/primitives.h#L9
  */
 struct CCSparkMintMeta {
     uint64_t height;
@@ -156,6 +147,8 @@ struct CCSparkMintMeta {
 
 /*
  * FFI-friendly wrapper for a spark::CoverSetData.
+ *
+ * CoverSetData: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/spend_transaction.h#L28
  */
 struct CCoverSetData {
     CDataStream** cover_set; // vs. struct CCoin* cover_set;

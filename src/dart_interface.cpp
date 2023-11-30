@@ -19,6 +19,13 @@ using namespace spark;
 
 /*
  * FFI-friendly wrapper for spark::getAddress.
+ *
+ * Uses the utility function spark::createSpendKeyFromData(const char *keyData, int index) to pass
+ * parameters to the C++ function spark::getAddress(const SpendKey& spendKey, uint64_t diversifier),
+ * then uses the utility function std::string encode(const uint8_t network) to convert the result
+ * back to a C string.
+ *
+ * getAddress: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/spark.cpp#L388
  */
 EXPORT_DART
 const char* getAddress(const char* keyDataHex, int index, int diversifier, int isTestNet) {
@@ -53,6 +60,8 @@ const char* getAddress(const char* keyDataHex, int index, int diversifier, int i
  * to a C struct.
  *
  * We also need the incoming view key or CCoin we need to derive it, so accept keyDataHex and index.
+ *
+ * identifyCoin: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/spark.cpp#L400
  */
 EXPORT_DART
 struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDataHex, int index) {
@@ -74,6 +83,12 @@ struct CIdentifiedCoinData identifyCoin(struct CCoin c_struct, const char* keyDa
 
 /*
  * FFI-friendly wrapper for spark::createSparkMintRecipients.
+ *
+ * Uses the utility functions spark::MintedCoinData fromFFI(const CMintedCoinData& c_struct) to pass
+ * parameters to the C++ function spark::createSparkMintRecipients, then uses the utility function
+ * CRecipient toFFI(const spark::Recipient& cpp_struct) to convert the result back to a C struct.
+ *
+ * createSparkMintRecipients: https://github.com/firoorg/sparkmobile/blob/8bf17cd3deba6c3b0d10e89282e02936d7e71cdd/src/spark.cpp#L43
  */
 EXPORT_DART
 struct CCRecipient* createSparkMintRecipients(
