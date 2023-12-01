@@ -221,6 +221,7 @@ unsigned char* cCreateSparkSpendTransaction(
         }
 
         // Convert CCoverSets* cover_set_data_all to a std::unordered_map<uint64_t, spark::CoverSetData> cppCoverSetDataAll
+        // TODO verify correctness.
         std::unordered_map<uint64_t, spark::CoverSetData> cppCoverSetDataAll;
         for (int i = 0; i < cover_set_data_allLength; i++) {
             for (int j = 0; j < cover_set_data_all[i].cover_setsLength; j++) {
@@ -229,18 +230,22 @@ unsigned char* cCreateSparkSpendTransaction(
                 spark::Coin coin = fromFFI(*cover_set_data_all[i].cover_sets[j].cover_set[0]);
                 cppCoverSetCoins.push_back(coin);
 
-                // Construct vector of vector of unsigned chars.
+                // Convert CCoverSetData to vector of vector of unsigned chars.
                 std::vector<CCoverSetData> coverSets(cover_set_data_all[i].cover_sets, cover_set_data_all[i].cover_sets + cover_set_data_all[i].cover_setsLength);
 
-                std::vector<std::vector<unsigned char>> coverSetReps;
-                for (auto& coverSet : coverSets) {
-                    std::vector<unsigned char> rep(coverSet.cover_set_representation,
-                                                   coverSet.cover_set_representation +
-                                                   coverSet.cover_set_representationLength);
-                    coverSetReps.push_back(rep);
+                // Combine all the cover set representations into one vector.
+                std::vector<unsigned char> coverSetReps;
+                for (int k = 0; k < cover_set_data_all[i].cover_setsLength; k++) {
+                    for (int l = 0; l < cover_set_data_all[i].cover_sets[k].cover_set_representationLength; l++) {
+                        coverSetReps.push_back(cover_set_data_all[i].cover_sets[k].cover_set_representation[l]);
+                    }
                 }
 
-                spark::CoverSetData cppCoverSetData = createCoverSetData(cppCoverSetCoins, coverSetReps);
+                // Construct spark::CoverSetData.
+                spark::CoverSetData cppCoverSetData;
+                cppCoverSetData.cover_set = cppCoverSetCoins;
+                cppCoverSetData.cover_set_representation = coverSetReps;
+
                 cppCoverSetDataAll[cover_set_data_all[i].cover_sets[j].cover_setLength] = cppCoverSetData;
             }
         }
