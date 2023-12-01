@@ -13,7 +13,7 @@
 /*
  * Utility function to generate an address from keyData, index, and a diversifier.
  */
-const char* getAddressFromData(const char* keyData, int index, const uint64_t diversifier) {
+const char* getAddressFromData(const char* keyData, int index, const uint64_t diversifier, int isTestNet) {
 	try {
 		spark::SpendKey spendKey = createSpendKeyFromData(keyData, index);
 		spark::FullViewKey fullViewKey(spendKey);
@@ -21,7 +21,7 @@ const char* getAddressFromData(const char* keyData, int index, const uint64_t di
 		spark::Address address(incomingViewKey, diversifier);
 
 		// Encode the Address object into a string.
-		std::string encodedAddress = address.encode(spark::ADDRESS_NETWORK_TESTNET);
+		std::string encodedAddress = address.encode(isTestNet ? spark::ADDRESS_NETWORK_TESTNET : spark::ADDRESS_NETWORK_MAINNET);
 
 		// Allocate memory for the C-style string and return it.
 		char* result = new char[encodedAddress.size() + 1];
@@ -266,12 +266,10 @@ CMintedCoinData createCMintedCoinData(const char* address, uint64_t value, const
 
 /*
  * Utility function to convert a C++ MintedCoinData struct to an FFI-friendly CMintedCoinData.
- *
- * TODO add isTestNet flag for address encoding.
  */
-CMintedCoinData toFFI(const spark::MintedCoinData& cpp_struct) {
+CMintedCoinData toFFI(const spark::MintedCoinData& cpp_struct, int isTestNet) {
     CMintedCoinData c_struct;
-    c_struct.address = strdup(cpp_struct.address.encode(spark::ADDRESS_NETWORK_TESTNET).c_str());
+    c_struct.address = strdup(cpp_struct.address.encode(isTestNet ? spark::ADDRESS_NETWORK_TESTNET : spark::ADDRESS_NETWORK_MAINNET).c_str());
     c_struct.value = cpp_struct.v;
     c_struct.memo = strdup(cpp_struct.memo.c_str());
     return c_struct;
@@ -290,8 +288,6 @@ spark::OutputCoinData createOutputCoinData(const char* address, uint64_t v, cons
 
 /*
  * Utility function to convert an FFI-friendly C COutputCoinData struct to a C++ OutputCoinData.
- *
- * TODO add isTestNet flag for address encoding.
  */
 spark::OutputCoinData fromFFI(const COutputCoinData& c_struct) {
 	return createOutputCoinData(
@@ -314,12 +310,10 @@ COutputCoinData createCOutputCoinData(const char* address, uint64_t value, const
 
 /*
  * Utility function to convert a C++ OutputCoinData struct to an FFI-friendly COutputCoinData.
- *
- * TODO add isTestNet flag for address encoding.
  */
-COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct) {
+COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct, int isTestNet) {
     // Encode address for testnet
-    std::string address = cpp_struct.address.encode(spark::ADDRESS_NETWORK_TESTNET);
+    std::string address = cpp_struct.address.encode(isTestNet ? spark::ADDRESS_NETWORK_TESTNET : spark::ADDRESS_NETWORK_MAINNET);
 
     return createCOutputCoinData(
 		address.c_str(),

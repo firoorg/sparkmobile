@@ -8,7 +8,7 @@
 #include <string.h>
 #include "dart_interface.h"
 
-const char* getAddressFromData(const char* keyData, int index, const uint64_t diversifier);
+const char* getAddressFromData(const char* keyData, int index, const uint64_t diversifier, int isTestNet);
 
 spark::SpendKey createSpendKeyFromData(const char *keyData, int index);
 
@@ -44,7 +44,7 @@ spark::MintedCoinData fromFFI(const CMintedCoinData& c_struct);
 
 CMintedCoinData createCMintedCoinData(const char* address, uint64_t value, const char* memo);
 
-CMintedCoinData toFFI(const spark::MintedCoinData& cpp_struct);
+CMintedCoinData toFFI(const spark::MintedCoinData& cpp_struct, int isTestNet);
 
 spark::OutputCoinData fromFFI(const COutputCoinData& c_struct);
 
@@ -52,7 +52,7 @@ spark::OutputCoinData createOutputCoinData(const char* address, uint64_t v, cons
 
 COutputCoinData createCOutputCoinData(const char* address, uint64_t value, const char* memo);
 
-COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct);
+COutputCoinData toFFI(const spark::OutputCoinData& cpp_struct, int isTestNet);
 
 CSparkMintMeta createCSparkMintMeta(const uint64_t height, const uint64_t id, const int isUsed, const char* txid, const uint64_t diversifier, const char* encryptedDiversifier, const uint64_t value, const char* nonce, const char* memo, const unsigned char* serialContext, const int serialContextLength, const char type, const CCoin coin);
 

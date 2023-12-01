@@ -428,7 +428,7 @@ BOOST_AUTO_TEST_CASE(CMintedCoinData_toFFI_test) {
     mintedCoinData.memo = "Foo";
 
     // Convert the MintedCoinData to a CMintedCoinData.
-    CMintedCoinData cmintedCoinData = toFFI(mintedCoinData);
+    CMintedCoinData cmintedCoinData = toFFI(mintedCoinData, 1);
 
     // Compare the two structs.
     //BOOST_CHECK_EQUAL(cmintedCoinData.address, mintedCoinData.address);
@@ -480,8 +480,8 @@ BOOST_AUTO_TEST_CASE(createSparkMintRecipients_test) {
     // Call C createSparkMintRecipients.
     //
     // Convert the MintedCoinDatas to CMintedCoinDatas with toFFI.
-    CMintedCoinData cmintedCoinData = toFFI(mintedCoinData);
-    CMintedCoinData cmintedCoinData2 = toFFI(mintedCoinData2);
+    CMintedCoinData cmintedCoinData = toFFI(mintedCoinData, 1);
+    CMintedCoinData cmintedCoinData2 = toFFI(mintedCoinData2, 1);
 
     // Make a struct CMintedCoinData* to pass to createSparkMintRecipients.
     CMintedCoinData* cmintedCoinDataArray = new CMintedCoinData[2];
