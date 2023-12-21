@@ -337,10 +337,12 @@ void createSparkSpendTransaction(
     for (auto& coin : estimated.second) {
         uint64_t groupId = coin.nId;
         if (cover_set_data.count(groupId) == 0) {
-            if (!(cover_set_data_all.count(groupId) > 0 && idAndBlockHashes.count(groupId) > 0 ))
+            if (!(cover_set_data_all.count(groupId) > 0 && idAndBlockHashes_all.count(groupId) > 0 ))
                 throw std::runtime_error("No such coin in set in input data");
             cover_set_data[groupId] = cover_set_data_all.at(groupId);
-            idAndBlockHashes[groupId] = idAndBlockHashes.at(groupId);
+            idAndBlockHashes[groupId] = idAndBlockHashes_all.at(groupId);
+            cover_set_data[groupId].cover_set_representation.insert(cover_set_data[groupId].cover_set_representation.end(), sig.begin(), sig.end());
+
         }
 
         spark::InputCoinData inputCoinData;
