@@ -502,6 +502,7 @@ CSparkMintMeta getMetadata(const spark::Coin& coin, const spark::IncomingViewKey
     meta.i = identifiedCoinData.i;
     meta.k = identifiedCoinData.k;
     meta.serial_context = {};
+    meta.coin = coin;
 
     return meta;
 }

@@ -52,18 +52,20 @@ Coin::Coin(
 	std::vector<unsigned char> padded_memo(memo_bytes);
 	padded_memo.resize(this->params->get_memo_bytes());
 
-	//
+    // Prepend the unpadded memo length
+    padded_memo.insert(padded_memo.begin(), (unsigned char) memo.size());
+
 	// Type-specific elements
 	//
 
 	if (this->type == COIN_TYPE_MINT) {
-		this->v = v;
+        this->v = v;
 
 		// Encrypt recipient data
 		MintCoinRecipientData r;
 		r.d = address.get_d();
 		r.k = k;
-		r.memo = std::string(padded_memo.begin(), padded_memo.end());
+		r.padded_memo = std::string(padded_memo.begin(), padded_memo.end());
 		CDataStream r_stream(SER_NETWORK, PROTOCOL_VERSION);
 		r_stream << r;
 		this->r_ = AEAD::encrypt(address.get_Q1()*SparkUtils::hash_k(k), "Mint coin data", r_stream);
@@ -73,7 +75,7 @@ Coin::Coin(
 		r.v = v;
 		r.d = address.get_d();
 		r.k = k;
-		r.memo = std::string(padded_memo.begin(), padded_memo.end());
+		r.padded_memo = std::string(padded_memo.begin(), padded_memo.end());
 		CDataStream r_stream(SER_NETWORK, PROTOCOL_VERSION);
 		r_stream << r;
 		this->r_ = AEAD::encrypt(address.get_Q1()*SparkUtils::hash_k(k), "Spend coin data", r_stream);
@@ -127,14 +129,20 @@ IdentifiedCoinData Coin::identify(const IncomingViewKey& incoming_view_key) {
 			// Decrypt recipient data
 			CDataStream stream = AEAD::decrypt_and_verify(this->K*incoming_view_key.get_s1(), "Mint coin data", this->r_);
 			stream >> r;
-		} catch (...) {
+		} catch (const std::exception &) {
 			throw std::runtime_error("Unable to identify coin");
 		}
 
-		data.d = r.d;
+        // Check that the memo length is valid
+        unsigned char memo_length = r.padded_memo[0];
+        if (memo_length > this->params->get_memo_bytes()) {
+            throw std::runtime_error("Unable to identify coin");
+        }
+
+        data.d = r.d;
 		data.v = this->v;
 		data.k = r.k;
-		data.memo = r.memo;
+		data.memo = std::string(r.padded_memo.begin() + 1, r.padded_memo.begin() + 1 + memo_length); // remove the encoded length and padding;
 	} else {
 		SpendCoinRecipientData r;
 
@@ -142,14 +150,20 @@ IdentifiedCoinData Coin::identify(const IncomingViewKey& incoming_view_key) {
 			// Decrypt recipient data
 			CDataStream stream = AEAD::decrypt_and_verify(this->K*incoming_view_key.get_s1(), "Spend coin data", this->r_);
 			stream >> r;
-		} catch (...) {
+		} catch (const std::exception &) {
 			throw std::runtime_error("Unable to identify coin");
 		}
-			
-		data.d = r.d;
+
+        // Check that the memo length is valid
+        unsigned char memo_length = r.padded_memo[0];
+        if (memo_length > this->params->get_memo_bytes()) {
+            throw std::runtime_error("Unable to identify coin");
+        }
+
+        data.d = r.d;
 		data.v = r.v;
 		data.k = r.k;
-		data.memo = r.memo;
+		data.memo = std::string(r.padded_memo.begin() + 1, r.padded_memo.begin() + 1 + memo_length); // remove the encoded length and padding;
 	}
 
 	// Validate the coin
