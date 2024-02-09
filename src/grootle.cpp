@@ -281,6 +281,11 @@ void Grootle::prove(
     for (std::size_t k = 0; k < S_offset.size(); k++) {
         S_offset[k] += S1_inverse;
         V_offset[k] += V1_inverse;
+
+        // Neither should be zero
+        if (S_offset[k].isInfinity() || V_offset[k].isInfinity()) {
+            throw std::invalid_argument("Commitment offset should not be zero");
+        }
     }
 
     // Generate masks
@@ -337,6 +342,9 @@ void Grootle::prove(
 
     Scalar x_powers(uint64_t(1));
     for (std::size_t j = 0; j < m; ++j) {
+        if (x_powers.isZero()) {
+            throw std::runtime_error("Challenge power is zero");
+        }
         sumS += (rho_S[j] * x_powers);
         sumV += (rho_V[j] * x_powers);
         x_powers *= x;
@@ -542,6 +550,9 @@ bool Grootle::verify(
         // (X), (X1)
         x_powers = Scalar(uint64_t(1));
         for (std::size_t j = 0; j < m; j++) {
+            if (x_powers.isZero()) {
+                return false;
+            }
             points.emplace_back(proof.X[j] + proof.X1[j] * bind_weight);
             scalars.emplace_back(x_powers.negate() * w2);
             x_powers *= x;
