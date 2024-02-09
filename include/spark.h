@@ -74,7 +74,8 @@ void createSparkSpendTransaction(
         const uint256& txHashSig,
         CAmount &fee,
         std::vector<uint8_t>& serializedSpend,
-        std::vector<std::vector<unsigned char>>& outputScripts);
+        std::vector<std::vector<unsigned char>>& outputScripts,
+        std::vector<CSparkMintMeta>& spentCoinsOut);
 
 
 #endif // SPARK_H
