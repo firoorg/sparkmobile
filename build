@@ -19,6 +19,8 @@ echo Building Spark Tests
 g++ tests/spark_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_tests
 echo Building Address Tests
 g++ tests/address_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/address_tests
+echo Building Ownership Tests
+g++ tests/ownership_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/ownership_tests
 echo Building Spark Coin Tests
 g++ tests/coin_test.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a  -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o $1/spark_coin_tests
 echo Building Spark Aead Tests
