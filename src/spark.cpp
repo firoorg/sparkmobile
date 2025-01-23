@@ -1,5 +1,6 @@
 #include "../include/spark.h"
 #include "spark.h"
+
 //#include "../bitcoin/amount.h"
 //#include <iostream>
 
@@ -151,7 +152,7 @@ std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(
             currentRequired += fee;
         spendCoins.clear();
         if (!GetCoinsToSpend(currentRequired, spendCoins, coins, changeToMint)) {
-            throw std::invalid_argument("Unable to select cons for spend");
+            throw std::invalid_argument("Unable to select coins for spend");
         }
 
         // 924 is constant part, mainly Schnorr and Range proofs, 2535 is for each grootle proof/aux data

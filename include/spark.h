@@ -33,7 +33,7 @@ struct CRecipient
 
 class SpendKeyData {
 public:
-    SpendKeyData(unsigned char* keydata, int32_t index = DEFAULT_SPARK_NCOUNT) {
+    SpendKeyData(const unsigned char* keydata, int32_t index = DEFAULT_SPARK_NCOUNT) {
         memcpy(this->keydata, keydata, 32);
         this->index = index;
     }
