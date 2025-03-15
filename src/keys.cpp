@@ -29,7 +29,7 @@ SpendKey::SpendKey(const Params* params, const Scalar& r_) {
     this->s1.memberFromSeed(&result[0]);
 
     data.clear();
-    result.clear();
+    result = std::vector<unsigned char>(CSHA256().OUTPUT_SIZE);
     hash256.Reset();
     s1.serialize(data.data());
 
