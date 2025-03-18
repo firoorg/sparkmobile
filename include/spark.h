@@ -7,7 +7,7 @@
 #include "../src/coin.h"
 #include "../src/mint_transaction.h"
 #include "../src/spend_transaction.h"
-#include "../src/spark_name.h"
+#include "../src/sparkname.h"
 #include <list>
 //#include <string>
 //
@@ -79,7 +79,7 @@ void createSparkSpendTransaction(
         std::vector<CSparkMintMeta>& spentCoinsOut);
 
 
-void GetSparkNameScript(CSparkNameTxData &sparkNameData,
+void GetSparkNameScript(spark::CSparkNameTxData &sparkNameData,
                          Scalar m,
                          const spark::SpendKey& spendKey,
                          const spark::IncomingViewKey& incomingViewKey,
