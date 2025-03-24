@@ -78,7 +78,7 @@ void createSparkSpendTransaction(
         std::vector<std::vector<unsigned char>>& outputScripts,
         std::vector<CSparkMintMeta>& spentCoinsOut);
 
-void GetSparkNameScript(CSparkNameTxData &sparkNameData,
+void GetSparkNameScript(spark::CSparkNameTxData &sparkNameData,
     Scalar m,
     const spark::SpendKey& spendKey,
     const spark::IncomingViewKey& incomingViewKey,

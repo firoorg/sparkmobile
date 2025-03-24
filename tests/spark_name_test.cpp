@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(spark_names)
 
     std::vector<unsigned char> outputScript;
 
-    CSparkNameTxData sparkNameData;
+    spark::CSparkNameTxData sparkNameData;
     sparkNameData.name = "TestName";
     sparkNameData.sparkAddress = getAddress(incoming_view_key, 1234).encode(spark::ADDRESS_NETWORK_TESTNET);
     sparkNameData.sparkNameValidityBlocks = 2;
@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(spark_names)
     BOOST_CHECK(!outputScript.empty());
 
     CDataStream stream(outputScript, SER_NETWORK, PROTOCOL_VERSION);
-    CSparkNameTxData decodedData;
+    spark::CSparkNameTxData decodedData;
     BOOST_CHECK_NO_THROW(stream >> decodedData);
 
     BOOST_CHECK_EQUAL(decodedData.name, sparkNameData.name);

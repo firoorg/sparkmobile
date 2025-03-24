@@ -4,6 +4,8 @@
 #include "../bitcoin/amount.h"
 #include "spark.h"
 
+namespace spark {
+
 struct CSparkNameTxData
 {
 public:
@@ -42,5 +44,6 @@ public:
     }
 };
 
+}
 
 #endif // FIRO_SPARK_NAME_H

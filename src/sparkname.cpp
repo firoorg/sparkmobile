@@ -1,6 +1,6 @@
 #include "sparkname.h"
 
-void GetSparkNameScript(CSparkNameTxData& sparkNameData,
+void GetSparkNameScript(spark::CSparkNameTxData& sparkNameData,
                         Scalar m,
                         const spark::SpendKey& spendKey,
                         const spark::IncomingViewKey& incomingViewKey,
