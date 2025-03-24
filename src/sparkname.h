@@ -4,8 +4,6 @@
 #include "../bitcoin/amount.h"
 #include "spark.h"
 
-namespace spark {
-
 struct CSparkNameTxData
 {
 public:
@@ -44,11 +42,5 @@ public:
     }
 };
 
-void GetSparkNameScript(spark::CSparkNameTxData &sparkNameData,
-    Scalar m,
-    const spark::SpendKey& spendKey,
-    const spark::IncomingViewKey& incomingViewKey,
-    std::vector<unsigned char>& outputScript);
-}
 
 #endif // FIRO_SPARK_NAME_H

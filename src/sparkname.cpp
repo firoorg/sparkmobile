@@ -1,7 +1,5 @@
 #include "sparkname.h"
 
-namespace spark {
-
 void GetSparkNameScript(CSparkNameTxData& sparkNameData,
                         Scalar m,
                         const spark::SpendKey& spendKey,
@@ -25,6 +23,4 @@ void GetSparkNameScript(CSparkNameTxData& sparkNameData,
     sparkNameDataStream << sparkNameData;
 
     outputScript.insert(outputScript.end(), sparkNameDataStream.begin(), sparkNameDataStream.end());
-}
-
 }
