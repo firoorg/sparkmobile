@@ -44,6 +44,14 @@ BOOST_AUTO_TEST_CASE(spark_names)
     BOOST_CHECK_EQUAL(decodedData.additionalInfo, sparkNameData.additionalInfo);
     BOOST_CHECK(!decodedData.addressOwnershipProof.empty());
 
+    spark::OwnershipProof deserializedOwnershipProof;
+    CDataStream deserializedStream(decodedData.addressOwnershipProof, SER_NETWORK, PROTOCOL_VERSION);
+    deserializedStream >> deserializedOwnershipProof;
+
+    spark::Address address(spark::Params::get_default());
+    address.decode(decodedData.sparkAddress);
+
+    BOOST_CHECK(address.verify_own(m, deserializedOwnershipProof));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
