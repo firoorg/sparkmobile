@@ -43,5 +43,7 @@ public:
         READWRITE(hashFailsafe);
     }
 };
+
 }
+
 #endif // FIRO_SPARK_NAME_H
