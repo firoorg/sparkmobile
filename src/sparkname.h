@@ -43,5 +43,12 @@ public:
         READWRITE(hashFailsafe);
     }
 };
+
+void GetSparkNameScript(spark::CSparkNameTxData &sparkNameData,
+    Scalar m,
+    const spark::SpendKey& spendKey,
+    const spark::IncomingViewKey& incomingViewKey,
+    std::vector<unsigned char>& outputScript);
 }
+
 #endif // FIRO_SPARK_NAME_H
