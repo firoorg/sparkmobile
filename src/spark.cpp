@@ -1,6 +1,13 @@
 #include "../include/spark.h"
 #include "spark.h"
 
+//#define __EMSCRIPTEN__ 1   // useful to uncomment - just for development (when building, needs to be defined project-wide, not just in this file)
+#ifdef __EMSCRIPTEN__
+#include <iostream>
+#include <boost/scope_exit.hpp>
+#include <boost/numeric/conversion/cast.hpp>
+#endif
+
 //#include "../bitcoin/amount.h"
 //#include <iostream>
 
@@ -136,7 +143,7 @@ bool GetCoinsToSpend(
 std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(
         CAmount required,
         bool subtractFeeFromAmount,
-        std::list<CSparkMintMeta> coins,
+        const std::list<CSparkMintMeta>& coins,
         std::size_t mintNum) {
     CFeeRate fRate;
 
@@ -171,7 +178,7 @@ std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(
     }
 
     if (changeToMint < 0)
-        throw std::invalid_argument("Unable to select cons for spend");
+        throw std::invalid_argument("Unable to select coins for spend");
 
     return std::make_pair(fee, spendCoins);
 
@@ -194,8 +201,8 @@ void createSparkSpendTransaction(
         const spark::IncomingViewKey& incomingViewKey,
         const std::vector<std::pair<CAmount, bool>>& recipients,
         const std::vector<std::pair<spark::OutputCoinData, bool>>& privateRecipients,
-        std::list<CSparkMintMeta> coins,
-        const std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data_all,
+        const std::list<CSparkMintMeta>& coins,
+        const std::unordered_map<uint64_t, spark::CoverSetData>& cover_set_data_all,
         const std::map<uint64_t, uint256>& idAndBlockHashes_all,
         const uint256& txHashSig,
         CAmount &fee,
@@ -204,7 +211,7 @@ void createSparkSpendTransaction(
         std::vector<CSparkMintMeta>& spentCoinsOut) {
 
     if (recipients.empty() && privateRecipients.empty()) {
-        throw std::runtime_error("Either recipients or newMints has to be nonempty.");
+        throw std::runtime_error("Either recipients or privateRecipients has to be nonempty.");
     }
 
     if (privateRecipients.size() >= SPARK_OUT_LIMIT_PER_TX - 1)
@@ -395,6 +402,19 @@ spark::Address getAddress(const spark::IncomingViewKey& incomingViewKey, const u
     return spark::Address(incomingViewKey, diversifier);
 }
 
+bool isValidSparkAddress( const char* address_cstr, bool is_test_net ) noexcept
+{
+    if (!address_cstr || !*address_cstr)
+       return false;
+    try {
+        spark::Address address;
+        const unsigned char network = address.decode(address_cstr);
+        return network == (is_test_net ? spark::ADDRESS_NETWORK_TESTNET : spark::ADDRESS_NETWORK_MAINNET);
+    } catch (...) {
+        return false;
+    }
+}
+
 spark::Coin getCoinFromMeta(const CSparkMintMeta& meta, const spark::IncomingViewKey& incomingViewKey)
 {
     const auto* params = spark::Params::get_default();
@@ -547,3 +567,423 @@ spark::InputCoinData getInputData(std::pair<spark::Coin, CSparkMintMeta> coin, c
 
     return inputCoinData;
 }
+
+#ifdef __EMSCRIPTEN__
+
+extern "C" {
+
+SpendKeyData *js_createSpendKeyData( const unsigned char * const keydata, std::int32_t index )
+{
+    try {
+        if ( !keydata ) {
+           std::cerr << "Error calling createSpendKeyData: Provided keydata is null." << std::endl;
+           return nullptr;
+        }
+        return new SpendKeyData( keydata, index );
+    } catch ( const std::exception &e ) {
+        std::cerr << "Error in SpendKeyData construction: " << e.what() << std::endl;
+        return nullptr;
+    }
+}
+
+spark::SpendKey *js_createSpendKey( const SpendKeyData * const data )
+{
+    try {
+        if ( !data ) {
+            std::cerr << "Error calling createSpendKey: Provided data is null." << std::endl;
+            return nullptr;
+        }
+        return new spark::SpendKey( createSpendKey( *data ) );
+    } catch ( const std::exception &e ) {
+        std::cerr << "Error in createSpendKey: " << e.what() << std::endl;
+        return nullptr;
+    }
+}
+
+const char *js_getSpendKey_s1( const spark::SpendKey * const spend_key )
+{
+    if ( !spend_key )
+       return nullptr;
+    static const std::string ret = spend_key->get_s1().tostring();
+    return ret.c_str();
+}
+
+const char *js_getSpendKey_s2( const spark::SpendKey * const spend_key )
+{
+    if ( !spend_key )
+       return nullptr;
+    static const std::string ret = spend_key->get_s2().tostring();
+    return ret.c_str();
+}
+
+const char *js_getSpendKey_r( const spark::SpendKey * const spend_key )
+{
+    if ( !spend_key )
+       return nullptr;
+    static const std::string ret = spend_key->get_r().tostring();
+    return ret.c_str();
+}
+
+const char *js_getSpendKey_s1_hex( const spark::SpendKey * const spend_key )
+{
+    if ( !spend_key )
+       return nullptr;
+    static const std::string ret = spend_key->get_s1().GetHex();
+    return ret.c_str();
+}
+
+const char *js_getSpendKey_s2_hex( const spark::SpendKey * const spend_key )
+{
+    if ( !spend_key )
+       return nullptr;
+    static const std::string ret = spend_key->get_s2().GetHex();
+    return ret.c_str();
+}
+
+const char *js_getSpendKey_r_hex( const spark::SpendKey * const spend_key )
+{
+    if ( !spend_key )
+       return nullptr;
+    static const std::string ret = spend_key->get_r().GetHex();
+    return ret.c_str();
+}
+   
+spark::FullViewKey *js_createFullViewKey( const spark::SpendKey * const spend_key )
+{
+    try {
+        if ( !spend_key ) {
+            std::cerr << "Error calling createFullViewKey: Provided SpendKey is null." << std::endl;
+            return nullptr;
+        }
+        return new spark::FullViewKey( createFullViewKey( *spend_key ) );
+    } catch ( const std::exception &e ) {
+        std::cerr << "Error in createFullViewKey: " << e.what() << std::endl;
+        return nullptr;
+    }
+}
+
+spark::IncomingViewKey *js_createIncomingViewKey( const spark::FullViewKey * const full_view_key )
+{
+   try {
+      if ( !full_view_key ) {
+         std::cerr << "Error calling createIncomingViewKey: Provided FullViewKey is null." << std::endl;
+         return nullptr;
+      }
+      return new spark::IncomingViewKey( createIncomingViewKey( *full_view_key ) );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in createIncomingViewKey: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+spark::Address *js_getAddress( const spark::IncomingViewKey * const incoming_view_key, const std::uint64_t diversifier )
+{
+   try {
+      if ( !incoming_view_key ) {
+         std::cerr << "Error calling getAddress: Provided IncomingViewKey is null." << std::endl;
+         return nullptr;
+      }
+      return new spark::Address( getAddress( *incoming_view_key, diversifier ) );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getAddress: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+// Wrapper function to encode an Address object to a string representation, with a specified network (test or main).
+const char *js_encodeAddress( const spark::Address * const address, const std::int32_t is_test_net )
+{
+   try {
+      if ( !address ) {
+         std::cerr << "Error calling encodeAddress: Provided Address is null." << std::endl;
+         return nullptr;
+      }
+      static const std::string encoded = address->encode( is_test_net ? spark::ADDRESS_NETWORK_TESTNET : spark::ADDRESS_NETWORK_MAINNET );
+      return encoded.c_str();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in encodeAddress: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+// Wrapper function to validate whether a given string is a valid Spark address, with a specified network (test or main).
+std::int32_t js_isValidSparkAddress( const char * const address, const std::int32_t is_test_net )
+{
+   static_assert( noexcept( isValidSparkAddress( address, !!is_test_net ) ), "isValidSparkAddress() was not supposed to ever throw" );
+   return isValidSparkAddress( address, !!is_test_net );
+}
+
+// Wrapper function to decode a Spark address from its string representation, with a specified network (test or main).
+spark::Address *js_decodeAddress( const char *address_cstr, const std::int32_t is_test_net )
+{
+   try {
+      if ( !address_cstr ) {
+         std::cerr << "Error calling decodeAddress: Provided address is null." << std::endl;
+         return nullptr;
+      }
+
+      auto address = std::make_unique< spark::Address >();
+      const unsigned char network = address->decode( address_cstr );
+      if ( network == ( is_test_net ? spark::ADDRESS_NETWORK_TESTNET : spark::ADDRESS_NETWORK_MAINNET ) )
+         return address.release();
+     std::cerr << "Error in decodeAddress: network mismatch." << std::endl;
+     return nullptr;
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in decodeAddress: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+spark::MintedCoinData *js_createMintedCoinData( const spark::Address * const address, const std::uint64_t value, const char * const memo )
+{
+   try {
+      if ( !address ) {
+         std::cerr << "Error calling createMintedCoinData: Provided address is null." << std::endl;
+         return nullptr;
+      }
+      if ( !memo ) {
+         std::cerr << "Error calling createMintedCoinData: Provided memo is null." << std::endl;
+         return nullptr;
+      }
+      if ( !value ) {
+         std::cerr << "Error calling createMintedCoinData: Provided value is 0." << std::endl;
+         return nullptr;
+      }
+      return new spark::MintedCoinData{ *address, value, memo };
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in createMintedCoinData: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+/*
+ * Wrapper function to create Spark Mint Recipients.
+ * ATTENTION: This function will perform deletion of all `outputs`, regardless of the function's outcome.
+ *
+ * Parameters:
+ *   - outputs: Array of MintedCoinData pointers.
+ *   - outputs_length: Length of the outputs array.
+ *   - serial_context: Byte array containing the serial context.
+ *   - serial_context_length: Length of the serial context array.
+ *   - generate: Boolean indicating whether to generate the actual coin data.
+ * Returns:
+ *   - An address to a vector of CRecipients, or nullptr upon failure.
+ */
+const std::vector< CRecipient > *js_createSparkMintRecipients( const spark::MintedCoinData **outputs,
+                                                               const std::uint32_t outputs_length,
+                                                               const unsigned char *serial_context,
+                                                               const std::uint32_t serial_context_length,
+                                                               const std::int32_t generate )
+{
+   BOOST_SCOPE_EXIT( &outputs, outputs_length )
+   {
+      for ( std::size_t i = 0; i < outputs_length; ++i )
+         delete outputs[ i ];
+   }
+   BOOST_SCOPE_EXIT_END
+
+   try {
+      if ( !outputs || outputs_length == 0 ) {
+         std::cerr << "Error calling createSparkMintRecipients: Outputs array is null or empty." << std::endl;
+         return nullptr;
+      }
+
+      if ( !serial_context || serial_context_length == 0 ) {
+         std::cerr << "Error calling createSparkMintRecipients: Serial context is null or empty." << std::endl;
+         return nullptr;
+      }
+
+      // Convert the array of MintedCoinData pointers to a vector.
+      std::vector< spark::MintedCoinData > outputs_vec;
+      outputs_vec.reserve( outputs_length );
+      for ( std::size_t i = 0; i < outputs_length; ++i ) {
+         if ( !outputs[ i ] ) {
+            std::cerr << "Error calling createSparkMintRecipients: Null pointer found in outputs array." << std::endl;
+            return nullptr;
+         }
+         outputs_vec.emplace_back( std::move( *outputs[ i ] ) );
+      }
+
+      // Convert the serial context byte array to a vector.
+      const std::vector serial_context_vec( serial_context, serial_context + serial_context_length );
+
+      return new std::vector< CRecipient >( createSparkMintRecipients( outputs_vec, serial_context_vec, !!generate ) );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in createSparkMintRecipients: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+/*
+ * Wrapper function to get the length of a vector of CRecipient.
+ * This function ensures safe handling of the size retrieval process.
+ *
+ * Parameters:
+ *   - recipients: Pointer to the vector of CRecipient.
+ * Returns:
+ *   - The length of the recipients vector, or -1 if null or unrepresentable in the target type.
+ */
+std::int32_t js_getRecipientVectorLength( const std::vector< CRecipient > * const recipients )
+{
+   try {
+      if ( !recipients ) {
+         std::cerr << "Error calling getRecipientVectorLength: Provided recipients pointer is null." << std::endl;
+         return -1;
+      }
+      return boost::numeric_cast< std::int32_t >( recipients->size() );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getRecipientVectorLength: " << e.what() << std::endl;
+      return -1;
+   }
+}
+
+/*
+ * Wrapper function to get a recipient at a specific index from a vector of CRecipient.
+ * This function ensures safe access to the recipient data.
+ *
+ * Parameters:
+ *   - recipients: Pointer to the vector of CRecipient.
+ *   - index: The index of the recipient to retrieve.
+ * Returns:
+ *   - Pointer to the CRecipient at the specified index, or nullptr if out of range or error.
+ */
+const CRecipient *js_getRecipientAt( const std::vector< CRecipient > * const recipients, const std::int32_t index )
+{
+   try {
+      if ( !recipients ) {
+         std::cerr << "Error calling getRecipientAt: Provided recipients pointer is null." << std::endl;
+         return nullptr;
+      }
+
+      if ( index < 0 || static_cast< std::size_t >( index ) >= recipients->size() ) {
+         std::cerr << "Error calling getRecipientAt: Index " << index << " is out of bounds." << std::endl;
+         return nullptr;
+      }
+
+      return &recipients->at( index );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getRecipientAt: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+/*
+ * Wrapper function to get the raw content of the scriptPubKey data of a CRecipient.
+ *
+ * Parameters:
+ *   - recipient: Pointer to a CRecipient.
+ * Returns:
+ *   - Pointer to the byte array comprising the recipient's pubKey script, or nullptr if recipient is null.
+ */
+const unsigned char *js_getRecipientScriptPubKey( const CRecipient * const recipient )
+{
+   if ( !recipient ) {
+      std::cerr << "Error calling getRecipientScriptPubKey: Provided recipient pointer is null." << std::endl;
+      return nullptr;
+   }
+   return recipient->pubKey.data();
+}
+
+/*
+ * Wrapper function to get the size of the scriptPubKey data of a CRecipient.
+ *
+ * Parameters:
+ *   - recipient: Pointer to a CRecipient.
+ * Returns:
+ *   - Size of the byte array comprising the recipient's pubKey script, or -1 if recipient is null or the size is unrepresentable in the target type.
+ */
+std::int32_t js_getRecipientScriptPubKeySize( const CRecipient * const recipient )
+{
+   try {
+      if ( !recipient ) {
+         std::cerr << "Error calling getRecipientScriptPubKeySize: Provided recipient pointer is null." << std::endl;
+         return -1;
+      }
+      return boost::numeric_cast< std::int32_t >( recipient->pubKey.size() );
+   } catch ( const std::exception &e ) {
+      std::cerr << "Error in getRecipientScriptPubKeySize: " << e.what() << std::endl;
+      return -1;
+   }
+}
+
+/*
+ * Wrapper function to get the amount of a CRecipient.
+ *
+ * Parameters:
+ *   - recipient: Pointer to a CRecipient.
+ * Returns:
+ *   - The amount as std::int64_t, or -1 if recipient is null.
+ */
+std::int64_t js_getRecipientAmount( const CRecipient * const recipient )
+{
+   if ( !recipient ) {
+      std::cerr << "Error calling getRecipientAmount: Provided recipient pointer is null." << std::endl;
+      return -1;
+   }
+   return recipient->amount;
+}
+
+/*
+ * Wrapper function to get the subtractFeeFromAmount flag of a CRecipient.
+ *
+ * Parameters:
+ *   - recipient: Pointer to a CRecipient.
+ * Returns:
+ *   - The subtractFeeFromAmount boolean flag as std::int32_t (0/1), or 0 if recipient is null.
+ */
+std::int32_t js_getRecipientSubtractFeeFromAmountFlag( const CRecipient * const recipient )
+{
+   if ( !recipient ) {
+      std::cerr << "Error calling getRecipientSubtractFeeFromAmount: Provided recipient pointer is null." << std::endl;
+      return false;
+   }
+   return recipient->subtractFeeFromAmount;
+}
+
+// Free memory allocated for SpendKeyData
+void js_freeSpendKeyData( SpendKeyData *spend_key_data )
+{
+    delete spend_key_data;
+}
+
+// Free memory allocated for SpendKey
+void js_freeSpendKey( spark::SpendKey *spend_key )
+{
+    delete spend_key;
+}
+
+// Free memory allocated for FullViewKey
+void js_freeFullViewKey( spark::FullViewKey *full_view_key )
+{
+    delete full_view_key;
+}
+
+// Free memory allocated for IncomingViewKey
+void js_freeIncomingViewKey( spark::IncomingViewKey *incoming_view_key )
+{
+   delete incoming_view_key;
+}
+
+// Free memory allocated for Address
+void js_freeAddress( spark::Address *address )
+{
+   delete address;
+}
+
+// Free memory allocated for a vector of CRecipient
+void js_freeRecipientVector( const std::vector< CRecipient > *recipients )
+{
+    delete recipients;
+}
+   
+}  // extern "C"
+
+#endif   // __EMSCRIPTEN__

@@ -1,0 +1,12 @@
+# ide & editor stuff
+.idea
+*.sw?
+
+# build intermediaries and artifacts
+cmake-build-debug
+out
+secp256k1/*.js
+secp256k1/*.wasm
+wasm/spark.html
+wasm/spark.js
+wasm/spark.wasm

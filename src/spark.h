@@ -8,7 +8,8 @@
 #include "../src/spend_transaction.h"
 #include <list>
 
-std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(CAmount required, bool subtractFeeFromAmount, std::list<CSparkMintMeta> coins, std::size_t mintNum);
+std::pair<CAmount, std::vector<CSparkMintMeta>>
+SelectSparkCoins(CAmount required, bool subtractFeeFromAmount, const std::list<CSparkMintMeta>& coins, std::size_t mintNum);
 
 bool GetCoinsToSpend(
         CAmount required,

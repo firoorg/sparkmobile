@@ -1,0 +1,7 @@
+Steps to follow for building openssl for incorporating into sparkmobile wasm:
+git clone https://github.com/openssl/openssl.git
+cd openssl/
+# make sure emcc is available, e.g. by: source /path/to/emsdk/emsdk_env.sh
+./Configure no-shared no-dso no-sse2 no-asm no-threads no-afalgeng --prefix=/path/to/sparkmobile/wasm/openssl linux-generic32
+make CC=emcc  # if fails, might need to delete all #include <linux/version.h> from the code and try again
+make install

@@ -8,10 +8,14 @@
 
 #include "threadsafety.h"
 
+#ifdef __EMSCRIPTEN__
+#include <boost/interprocess/sync/null_mutex.hpp>
+#else
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
+#endif
 
 
 ////////////////////////////////////////////////
@@ -91,8 +95,13 @@ void static inline DeleteLock(void* cs) {}
  * Wrapped boost mutex: supports recursive locking, but no waiting
  * TODO: We should move away from using the recursive lock by default.
  */
-class CCriticalSection : public AnnotatedMixin<boost::recursive_mutex>
-{
+class CCriticalSection : public AnnotatedMixin<
+#ifdef __EMSCRIPTEN__
+                           boost::interprocess::null_mutex
+#else
+                           boost::recursive_mutex
+#endif
+> {
 public:
     ~CCriticalSection() {
         DeleteLock((void*)this);
@@ -100,6 +109,8 @@ public:
 };
 
 typedef CCriticalSection CDynamicCriticalSection;
+
+#ifndef __EMSCRIPTEN__
 /** Wrapped boost mutex: supports waiting but not recursive locking */
 typedef AnnotatedMixin<boost::mutex> CWaitableCriticalSection;
 
@@ -289,5 +300,9 @@ public:
         return fHaveGrant;
     }
 };
+
+#else
+#define LOCK(cs) do {} while (0)
+#endif // __EMSCRIPTEN__
 
 #endif // BITCOIN_SYNC_H
