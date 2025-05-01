@@ -8,7 +8,7 @@ cd ../secp256k1 && ./autogen.sh
 make CC=emcc
 cd -
 
-emcc -std=c++17 -O3 -fexceptions -s WASM=1 -s USE_BOOST_HEADERS=1 -g \
+emcc -std=c++17 -O3 -fexceptions -s WASM=1 -s USE_BOOST_HEADERS=1 -s ALLOW_MEMORY_GROWTH=1 -g \
      -I./openssl/include ./openssl/lib/libcrypto.a -I../secp256k1/include ../secp256k1/.libs/libsecp256k1.a \
      -s "EXPORTED_FUNCTIONS=['_js_createSpendKeyData', '_js_createSpendKey', '_js_getSpendKey_s1', '_js_getSpendKey_s2', '_js_getSpendKey_r',
                              '_js_getSpendKey_s1_hex', '_js_getSpendKey_s2_hex', '_js_getSpendKey_r_hex',
