@@ -397,7 +397,7 @@ void createSparkSpendTransaction(
         spentCoinsOut = estimated.second;
 }
 
-spark::Address getAddress(const spark::IncomingViewKey& incomingViewKey, const uint64_t diversifier)
+spark::Address getAddress(const spark::IncomingViewKey& incomingViewKey, const std::uint64_t diversifier)
 {
     return spark::Address(incomingViewKey, diversifier);
 }
@@ -515,6 +515,7 @@ CSparkMintMeta getMetadata(const spark::Coin& coin, const spark::IncomingViewKey
     try {
         identifiedCoinData = identifyCoin(coin, incoming_view_key);
     } catch (...) {
+        assert(meta.k.isZero());
         return meta;
     }
 
@@ -527,6 +528,7 @@ CSparkMintMeta getMetadata(const spark::Coin& coin, const spark::IncomingViewKey
     meta.serial_context = {};
     meta.coin = coin;
 
+    assert(!meta.k.isZero());
     return meta;
 }
 
@@ -537,6 +539,7 @@ spark::InputCoinData getInputData(spark::Coin coin, const spark::FullViewKey& fu
     try {
         identifiedCoinData = identifyCoin(coin, incoming_view_key);
     } catch (...) {
+        assert(inputCoinData.k.isZero());
         return inputCoinData;
     }
 
@@ -546,6 +549,7 @@ spark::InputCoinData getInputData(spark::Coin coin, const spark::FullViewKey& fu
     inputCoinData.k = identifiedCoinData.k;
     inputCoinData.v = identifiedCoinData.v;
 
+    assert(!inputCoinData.k.isZero());
     return inputCoinData;
 }
 
@@ -568,11 +572,20 @@ spark::InputCoinData getInputData(std::pair<spark::Coin, CSparkMintMeta> coin, c
     return inputCoinData;
 }
 
+spark::Coin deserializeCoin( const unsigned char *serialized_coin, int serialized_data_length )
+{
+    const std::vector< unsigned char > vec( serialized_coin, serialized_coin + serialized_data_length );
+    CDataStream stream( vec, SER_NETWORK, PROTOCOL_VERSION );
+    spark::Coin coin( spark::Params::get_default() );
+    stream >> coin;
+    return coin;
+}
+
 #ifdef __EMSCRIPTEN__
 
 extern "C" {
 
-SpendKeyData *js_createSpendKeyData( const unsigned char * const keydata, std::int32_t index )
+SpendKeyData *js_createSpendKeyData( const unsigned char * const keydata, const std::int32_t index )
 {
     try {
         if ( !keydata ) {
@@ -717,7 +730,7 @@ std::int32_t js_isValidSparkAddress( const char * const address, const std::int3
 }
 
 // Wrapper function to decode a Spark address from its string representation, with a specified network (test or main).
-spark::Address *js_decodeAddress( const char *address_cstr, const std::int32_t is_test_net )
+spark::Address *js_decodeAddress( const char * const address_cstr, const std::int32_t is_test_net )
 {
    try {
       if ( !address_cstr ) {
@@ -776,7 +789,7 @@ spark::MintedCoinData *js_createMintedCoinData( const spark::Address * const add
  */
 const std::vector< CRecipient > *js_createSparkMintRecipients( const spark::MintedCoinData **outputs,
                                                                const std::uint32_t outputs_length,
-                                                               const unsigned char *serial_context,
+                                                               const unsigned char * const serial_context,
                                                                const std::uint32_t serial_context_length,
                                                                const std::int32_t generate )
 {
@@ -948,6 +961,331 @@ std::int32_t js_getRecipientSubtractFeeFromAmountFlag( const CRecipient * const 
    return recipient->subtractFeeFromAmount;
 }
 
+/*
+ * Wrapper function to deserialize a coin from its serialized byte array representation.
+ *
+ * Parameters:
+ *   - serialized_data: Pointer to the byte array containing the serialized coin.
+ *   - serialized_data_length: The size of the serialized_data array.
+ * Returns:
+ *   - Pointer to a dynamically allocated spark::Coin object on successful deserialization, or nullptr on failure.
+ */
+spark::Coin *js_deserializeCoin( const unsigned char * const serialized_data, const std::uint32_t serialized_data_length )
+{
+   try {
+      if ( !serialized_data ) {
+         std::cerr << "Error calling deserializeCoin: Provided serialized_data pointer is null." << std::endl;
+         return nullptr;
+      }
+
+      return new spark::Coin( deserializeCoin( serialized_data, serialized_data_length ) );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in deserializeCoin: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+/*
+ * Wrapper function to get a spark::Coin from a CSparkMintMeta object and an IncomingViewKey.
+ *
+ * Parameters:
+ *   - meta: Pointer to the CSparkMintMeta object containing metadata for the coin.
+ *   - incoming_view_key: Pointer to the spark::IncomingViewKey object.
+ * Returns:
+ *   - Pointer to a dynamically allocated spark::Coin object, or nullptr on failure.
+ */
+spark::Coin *js_getCoinFromMeta( const CSparkMintMeta * const meta, const spark::IncomingViewKey * const incoming_view_key )
+{
+   try {
+      if ( !meta ) {
+         std::cerr << "Error calling getCoinFromMeta: Provided meta pointer is null." << std::endl;
+         return nullptr;
+      }
+      if ( !incoming_view_key ) {
+         std::cerr << "Error calling getCoinFromMeta: Provided incoming_view_key pointer is null." << std::endl;
+         return nullptr;
+      }
+      return new spark::Coin( getCoinFromMeta( *meta, *incoming_view_key ) );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getCoinFromMeta: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+/*
+ * Wrapper function for getMetadata.
+ *
+ * Parameters:
+ *   - coin: Pointer to a spark::Coin object.
+ *   - incoming_view_key: Pointer to a spark::IncomingViewKey object.
+ * Returns:
+ *   - A dynamically allocated CSparkMintMeta on success, or nullptr on failure.
+ */
+CSparkMintMeta *js_getMetadata( const spark::Coin * const coin, const spark::IncomingViewKey * const incoming_view_key )
+{
+   try {
+      if ( !coin ) {
+         std::cerr << "Error calling getMetadata: Provided coin pointer is null." << std::endl;
+         return nullptr;
+      }
+      if ( !incoming_view_key ) {
+         std::cerr << "Error calling getMetadata: Provided incoming_view_key pointer is null." << std::endl;
+         return nullptr;
+      }
+      auto meta = std::make_unique< CSparkMintMeta >( getMetadata( *coin, *incoming_view_key ) );
+      if ( meta->k.isZero() ) { // this is how getMetadata()'s failure can be detected, as currently implemented
+         std::cerr << "Wrapped getMetadata() function failed to return a proper CSparkMintMeta object." << std::endl;
+         return nullptr;
+      }
+      return meta.release();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getMetadata: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+/*
+ * Wrapper function for getInputData (without metadata param).
+ *
+ * Parameters:
+ *   - coin: Pointer to a spark::Coin object.
+ *   - full_view_key: Pointer to a spark::FullViewKey object.
+ *   - incoming_view_key: Pointer to a spark::IncomingViewKey object.
+ * Returns:
+ *   - A dynamically allocated spark::InputCoinData on success, or nullptr on failure.
+ */
+spark::InputCoinData *js_getInputData( const spark::Coin * const coin, const spark::FullViewKey * const full_view_key, const spark::IncomingViewKey * const incoming_view_key )
+{
+   try {
+      if ( !coin ) {
+         std::cerr << "Error calling getInputData: Provided coin pointer is null." << std::endl;
+         return nullptr;
+      }
+      if ( !full_view_key ) {
+         std::cerr << "Error calling getInputData: Provided full_view_key pointer is null." << std::endl;
+         return nullptr;
+      }
+      if ( !incoming_view_key ) {
+         std::cerr << "Error calling getInputData: Provided incoming_view_key pointer is null." << std::endl;
+         return nullptr;
+      }
+      auto data = std::make_unique< spark::InputCoinData >( getInputData( *coin, *full_view_key, *incoming_view_key ) );
+      if ( data->k.isZero() ) { // this is how getInputData()'s failure can be detected, as currently implemented
+         std::cerr << "Wrapped getInputData() function failed to return a proper InputCoinData object." << std::endl;
+         return nullptr;
+      }
+      return data.release();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getInputData: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+/*
+ * Wrapper function for getInputData with metadata.
+ *
+ * Parameters:
+ *   - coin: Pointer to a spark::Coin object.
+ *   - coin: Pointer to the corresponding CSparkMintMeta object.
+ *   - full_view_key: Pointer to a spark::FullViewKey object.
+ * Returns:
+ *   - A dynamically allocated spark::InputCoinData on success, or nullptr on failure.
+ */
+spark::InputCoinData *js_getInputDataWithMeta( const spark::Coin * const coin, const CSparkMintMeta * const meta, const spark::FullViewKey * const full_view_key )
+{
+   try {
+      if ( !coin ) {
+         std::cerr << "Error calling getInputDataWithMeta: Provided coin pointer is null." << std::endl;
+         return nullptr;
+      }
+      if ( !meta ) {
+         std::cerr << "Error calling getInputDataWithMeta: Provided meta pointer is null." << std::endl;
+         return nullptr;
+      }
+      if ( !full_view_key ) {
+         std::cerr << "Error calling getInputDataWithMeta: Provided full_view_key pointer is null." << std::endl;
+         return nullptr;
+      }
+      return new spark::InputCoinData( getInputData( std::pair( *coin, *meta ), *full_view_key ) );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getInputDataWithMeta: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+/*
+ * Wrapper function for identifyCoin.
+ *
+ * Parameters:
+ *   - coin: Pointer to a spark::Coin object.
+ *   - incoming_view_key: Pointer to a spark::IncomingViewKey object.
+ * Returns:
+ *   - A dynamically allocated spark::IdentifiedCoinData on success, or nullptr on failure.
+ */
+spark::IdentifiedCoinData *js_identifyCoin( const spark::Coin * const coin, const spark::IncomingViewKey * const incoming_view_key )
+{
+   try {
+      if ( !coin ) {
+         std::cerr << "Error calling identifyCoin: Provided coin pointer is null." << std::endl;
+         return nullptr;
+      }
+      if ( !incoming_view_key ) {
+         std::cerr << "Error calling identifyCoin: Provided incoming_view_key pointer is null." << std::endl;
+         return nullptr;
+      }
+      return new spark::IdentifiedCoinData( identifyCoin( *coin, *incoming_view_key ) );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in identifyCoin: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+// Access integral attribute "i" (diversifier) from IdentifiedCoinData
+std::uint64_t js_getIdentifiedCoinDiversifier( const spark::IdentifiedCoinData * const identified_coin_data )
+{
+   if ( !identified_coin_data ) {
+      std::cerr << "Error in getIdentifiedCoinDiversifier: Provided IdentifiedCoinData pointer is null." << std::endl;
+      return 0;   // Return 0 to indicate an error
+   }
+   return identified_coin_data->i;
+}
+
+// Access integral attribute "v" (value) from IdentifiedCoinData
+std::uint64_t js_getIdentifiedCoinValue( const spark::IdentifiedCoinData * const identified_coin_data )
+{
+   if ( !identified_coin_data ) {
+      std::cerr << "Error in getIdentifiedCoinValue: Provided IdentifiedCoinData pointer is null." << std::endl;
+      return 0;   // Return 0 to indicate an error
+   }
+   return identified_coin_data->v;
+}
+
+// Access string attribute "memo" from IdentifiedCoinData
+const char *js_getIdentifiedCoinMemo( const spark::IdentifiedCoinData * const identified_coin_data )
+{
+   if ( !identified_coin_data ) {
+      std::cerr << "Error in getIdentifiedCoinMemo: Provided IdentifiedCoinData pointer is null." << std::endl;
+      return nullptr;   // Return null to indicate an error
+   }
+   return identified_coin_data->memo.c_str();
+}
+
+// Access integral attribute "nHeight" from CSparkMintMeta
+std::int32_t js_getCSparkMintMetaHeight( const CSparkMintMeta * const meta )
+{
+   if ( !meta ) {
+      std::cerr << "Error in getCSparkMintMetaHeight: Provided CSparkMintMeta pointer is null." << std::endl;
+      return -1;   // Return -1 to indicate an error
+   }
+   return meta->nHeight;
+}
+
+// Access integral attribute "nId" from CSparkMintMeta
+std::int32_t js_getCSparkMintMetaId( const CSparkMintMeta * const meta )
+{
+   if ( !meta ) {
+      std::cerr << "Error in getCSparkMintMetaId: Provided CSparkMintMeta pointer is null." << std::endl;
+      return -1;   // Return -1 to indicate an error
+   }
+   return meta->nId;
+}
+
+// Access boolean attribute "isUsed" from CSparkMintMeta, as an int
+std::int32_t js_getCSparkMintMetaIsUsed( const CSparkMintMeta * const meta )
+{
+   if ( !meta ) {
+      std::cerr << "Error in getCSparkMintMetaIsUsed: Provided CSparkMintMeta pointer is null." << std::endl;
+      return false;   // Return false to indicate an error
+   }
+   return meta->isUsed;
+}
+
+// Access string attribute "memo" from CSparkMintMeta
+const char *js_getCSparkMintMetaMemo( const CSparkMintMeta * const meta )
+{
+   if ( !meta ) {
+      std::cerr << "Error in getCSparkMintMetaMemo: Provided CSparkMintMeta pointer is null." << std::endl;
+      return nullptr;   // Return null to indicate an error
+   }
+   return meta->memo.c_str();
+}
+
+// Access integral attribute "i" (diversifier) from CSparkMintMeta
+std::uint64_t js_getCSparkMintMetaDiversifier( const CSparkMintMeta * const meta )
+{
+   if ( !meta ) {
+      std::cerr << "Error in getCSparkMintMetaDiversifier: Provided CSparkMintMeta pointer is null." << std::endl;
+      return 0;   // Return 0 to indicate an error
+   }
+   return meta->i;
+}
+
+// Access integral attribute "v" (value) from CSparkMintMeta
+std::uint64_t js_getCSparkMintMetaValue( const CSparkMintMeta * const meta )
+{
+   if ( !meta ) {
+      std::cerr << "Error in getCSparkMintMetaValue: Provided CSparkMintMeta pointer is null." << std::endl;
+      return 0;   // Return 0 to indicate an error
+   }
+   return meta->v;
+}
+
+// Access char attribute "type" from CSparkMintMeta, as an int
+std::int32_t js_getCSparkMintMetaType( const CSparkMintMeta * const meta )
+{
+   if ( !meta ) {
+      std::cerr << "Error in getCSparkMintMetaType: Provided CSparkMintMeta pointer is null." << std::endl;
+      return 0;   // Return 0 to indicate an error
+   }
+   return meta->type;
+}
+
+// Access Coin attribute "coin" from CSparkMintMeta
+const spark::Coin *js_getCSparkMintMetaCoin( const CSparkMintMeta * const meta )
+{
+   if ( !meta ) {
+      std::cerr << "Error in getCSparkMintMetaCoin: Provided CSparkMintMeta pointer is null." << std::endl;
+      return nullptr;   // Return null to indicate an error
+   }
+   return &meta->coin;
+}
+
+// Access integral attribute "cover_set_id" from InputCoinData
+std::uint64_t js_getInputCoinDataCoverSetId( const spark::InputCoinData * const input_coin_data )
+{
+   if ( !input_coin_data ) {
+      std::cerr << "Error in getInputCoinDataCoverSetId: Provided InputCoinData pointer is null." << std::endl;
+      return 0;   // Return 0 to indicate an error
+   }
+   return input_coin_data->cover_set_id;
+}
+
+// Access integral attribute "index" from InputCoinData
+std::uint64_t js_getInputCoinDataIndex( const spark::InputCoinData * const input_coin_data )
+{
+   if ( !input_coin_data ) {
+      std::cerr << "Error in getInputCoinDataIndex: Provided InputCoinData pointer is null." << std::endl;
+      return 0;   // Return 0 to indicate an error
+   }
+   return input_coin_data->index;
+}
+
+// Access value attribute "v" from InputCoinData
+std::uint64_t js_getInputCoinDataValue( const spark::InputCoinData * const input_coin_data )
+{
+   if ( !input_coin_data ) {
+      std::cerr << "Error in getInputCoinDataValue: Provided InputCoinData pointer is null." << std::endl;
+      return 0;   // Return 0 to indicate an error
+   }
+   return input_coin_data->v;
+}
+
 // Free memory allocated for SpendKeyData
 void js_freeSpendKeyData( SpendKeyData *spend_key_data )
 {
@@ -983,7 +1321,31 @@ void js_freeRecipientVector( const std::vector< CRecipient > *recipients )
 {
     delete recipients;
 }
-   
+
+// Free memory allocated for CSparkMintMeta
+void js_freeCSparkMintMeta( CSparkMintMeta *meta )
+{
+   delete meta;
+}
+
+// Free memory allocated for spark::InputCoinData
+void js_freeInputCoinData( spark::InputCoinData *input_coin_data )
+{
+   delete input_coin_data;
+}
+
+// Free memory allocated for spark::IdentifiedCoinData
+void js_freeIdentifiedCoinData( spark::IdentifiedCoinData *identified_coin_data )
+{
+   delete identified_coin_data;
+}
+
+// Free memory allocated for spark::Coin
+void js_freeCoin( spark::Coin *coin )
+{
+   delete coin;
+}
+
 }  // extern "C"
 
 #endif   // __EMSCRIPTEN__
