@@ -8,17 +8,17 @@
 
 struct CSparkMintMeta
 {
-    int nHeight;
-    int nId;
-    bool isUsed;
+    int nHeight = -1;
+    int nId = -1;
+    bool isUsed = false;
     uint256 txid;
-    uint64_t i; // diversifier
+    std::uint64_t i = 0; // diversifier
     std::vector<unsigned char> d; // encrypted diversifier
-    uint64_t v; // value
+    std::uint64_t v = 0; // value
     Scalar k; // nonce
     std::string memo; // memo
     std::vector<unsigned char> serial_context;
-    char type;
+    char type = 0;
     spark::Coin coin;
     mutable boost::optional<uint256> nonceHash;
 

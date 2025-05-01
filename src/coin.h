@@ -17,9 +17,9 @@ const char COIN_TYPE_MINT = 0;
 const char COIN_TYPE_SPEND = 1;
 
 struct IdentifiedCoinData {
-	uint64_t i; // diversifier
+	std::uint64_t i = 0; // diversifier
 	std::vector<unsigned char> d; // encrypted diversifier
-	uint64_t v; // value
+	std::uint64_t v = 0; // value
 	Scalar k; // nonce
 	std::string memo; // memo
 };
@@ -69,7 +69,7 @@ public:
     Coin(const Params* params);
 	Coin(
 		const Params* params,
-		const char type,
+		char type,
 		const Scalar& k,
 		const Address& address,
 		const uint64_t& v,
