@@ -84,4 +84,6 @@ void GetSparkNameScript(spark::CSparkNameTxData &sparkNameData,
     const spark::IncomingViewKey& incomingViewKey,
     std::vector<unsigned char>& outputScript);
 
+size_t getSparkNameTxDataSize(const spark::CSparkNameTxData &sparkNameData);
+
 #endif // SPARK_H

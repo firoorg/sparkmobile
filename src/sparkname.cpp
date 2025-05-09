@@ -24,3 +24,19 @@ void GetSparkNameScript(spark::CSparkNameTxData& sparkNameData,
 
     outputScript.insert(outputScript.end(), sparkNameDataStream.begin(), sparkNameDataStream.end());
 }
+
+size_t getSparkNameTxDataSize(const spark::CSparkNameTxData &sparkNameData)
+{
+    spark::CSparkNameTxData sparkNameDataCopy = sparkNameData;
+    spark::OwnershipProof ownershipProof;   // just an empty proof
+
+    CDataStream ownershipProofStream(SER_NETWORK, PROTOCOL_VERSION);
+    ownershipProofStream << ownershipProof;
+
+    sparkNameDataCopy.addressOwnershipProof.assign(ownershipProofStream.begin(), ownershipProofStream.end());
+
+    CDataStream sparkNameDataStream(SER_NETWORK, PROTOCOL_VERSION);
+    sparkNameDataStream << sparkNameDataCopy;
+
+    return sparkNameDataStream.size();
+}
