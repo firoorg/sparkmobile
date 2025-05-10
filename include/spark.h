@@ -73,6 +73,7 @@ void createSparkSpendTransaction(
         const std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data_all,
         const std::map<uint64_t, uint256>& idAndBlockHashes_all,
         const uint256& txHashSig,
+        std::size_t additionalTxSize,
         CAmount &fee,
         std::vector<uint8_t>& serializedSpend,
         std::vector<std::vector<unsigned char>>& outputScripts,
