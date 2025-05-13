@@ -20,20 +20,20 @@ typedef struct secp256k1_scratch_space_struct {
     const secp256k1_callback* error_callback;
 } secp256k1_scratch;
 
-static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* error_callback, size_t max_size);
+secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* error_callback, size_t max_size);
 
-static void secp256k1_scratch_destroy(secp256k1_scratch* scratch);
+void secp256k1_scratch_destroy(secp256k1_scratch* scratch);
 
 /** Attempts to allocate a new stack frame with `n` available bytes. Returns 1 on success, 0 on failure */
-static int secp256k1_scratch_allocate_frame(secp256k1_scratch* scratch, size_t n, size_t objects);
+int secp256k1_scratch_allocate_frame(secp256k1_scratch* scratch, size_t n, size_t objects);
 
 /** Deallocates a stack frame */
-static void secp256k1_scratch_deallocate_frame(secp256k1_scratch* scratch);
+void secp256k1_scratch_deallocate_frame(secp256k1_scratch* scratch);
 
 /** Returns the maximum allocation the scratch space will allow */
-static size_t secp256k1_scratch_max_allocation(const secp256k1_scratch* scratch, size_t n_objects);
+size_t secp256k1_scratch_max_allocation(const secp256k1_scratch* scratch, size_t n_objects);
 
 /** Returns a pointer into the most recently allocated frame, or NULL if there is insufficient available space */
-static void *secp256k1_scratch_alloc(secp256k1_scratch* scratch, size_t n);
+void *secp256k1_scratch_alloc(secp256k1_scratch* scratch, size_t n);
 
 #endif
