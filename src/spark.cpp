@@ -4,9 +4,13 @@
 //#define __EMSCRIPTEN__ 1   // useful to uncomment - just for development (when building, needs to be defined project-wide, not just in this file)
 #ifdef __EMSCRIPTEN__
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <boost/scope_exit.hpp>
 #include <boost/numeric/conversion/cast.hpp>
 #endif
+
+//#define SPARK_DEBUGGING_OUTPUT 1 // useful to uncomment - for building a testing module with outputs to help with troubleshooting. Make sure is commented out in prod builds!
 
 //#include "../bitcoin/amount.h"
 //#include <iostream>
@@ -572,16 +576,38 @@ spark::InputCoinData getInputData(std::pair<spark::Coin, CSparkMintMeta> coin, c
     return inputCoinData;
 }
 
-spark::Coin deserializeCoin( const unsigned char *serialized_coin, int serialized_data_length )
+spark::Coin deserializeCoin( const unsigned char * const serialized_coin, const std::uint32_t serialized_data_length,
+                             const unsigned char * const serial_context, const std::uint32_t serial_context_length )
 {
     const std::vector< unsigned char > vec( serialized_coin, serialized_coin + serialized_data_length );
     CDataStream stream( vec, SER_NETWORK, PROTOCOL_VERSION );
     spark::Coin coin( spark::Params::get_default() );
     stream >> coin;
+    coin.setSerialContext( { serial_context, serial_context + serial_context_length } );
     return coin;
 }
 
+#if 0 // could be useful for some advanced troubleshooting
+static spark::IncomingViewKey deserializeIncomingViewKey( const unsigned char * const p, const std::size_t len )
+{
+    const std::vector< unsigned char > vec( p, p + len );
+    CDataStream stream( vec, SER_NETWORK, PROTOCOL_VERSION );
+    spark::IncomingViewKey incoming_view_key;
+    stream >> incoming_view_key;
+    return incoming_view_key;
+}
+#endif
+
 #ifdef __EMSCRIPTEN__
+
+static std::string to_hex_string( const unsigned char * const data, const size_t len )
+{
+   std::ostringstream ss;
+   ss << std::hex << std::setfill( '0' );
+   for ( std::size_t i = 0; i < len; ++i )
+      ss << std::setw( 2 ) << +data[ i ];
+   return ss.str();
+}
 
 extern "C" {
 
@@ -592,7 +618,14 @@ SpendKeyData *js_createSpendKeyData( const unsigned char * const keydata, const 
            std::cerr << "Error calling createSpendKeyData: Provided keydata is null." << std::endl;
            return nullptr;
         }
-        return new SpendKeyData( keydata, index );
+#if SPARK_DEBUGGING_OUTPUT
+        std::cout << "createSpendKeyData: " << to_hex_string( keydata, 32 ) << ' ' << index << std::endl;
+#endif
+        auto * const ret = new SpendKeyData( keydata, index );
+#if SPARK_DEBUGGING_OUTPUT
+        std::cout << "created spend key data " << ret << " from " << to_hex_string( keydata, 32 ) << std::endl;
+#endif
+        return ret;
     } catch ( const std::exception &e ) {
         std::cerr << "Error in SpendKeyData construction: " << e.what() << std::endl;
         return nullptr;
@@ -606,7 +639,11 @@ spark::SpendKey *js_createSpendKey( const SpendKeyData * const data )
             std::cerr << "Error calling createSpendKey: Provided data is null." << std::endl;
             return nullptr;
         }
-        return new spark::SpendKey( createSpendKey( *data ) );
+        auto * const ret = new spark::SpendKey( createSpendKey( *data ) );
+#if SPARK_DEBUGGING_OUTPUT
+        std::cout << "createSpendKey: " << ret << ' ' << ret->get_s1() << ' ' << ret->get_s2() << " from " << data << std::endl;
+#endif
+        return ret;
     } catch ( const std::exception &e ) {
         std::cerr << "Error in createSpendKey: " << e.what() << std::endl;
         return nullptr;
@@ -660,7 +697,7 @@ const char *js_getSpendKey_r_hex( const spark::SpendKey * const spend_key )
     static const std::string ret = spend_key->get_r().GetHex();
     return ret.c_str();
 }
-   
+
 spark::FullViewKey *js_createFullViewKey( const spark::SpendKey * const spend_key )
 {
     try {
@@ -668,7 +705,11 @@ spark::FullViewKey *js_createFullViewKey( const spark::SpendKey * const spend_ke
             std::cerr << "Error calling createFullViewKey: Provided SpendKey is null." << std::endl;
             return nullptr;
         }
-        return new spark::FullViewKey( createFullViewKey( *spend_key ) );
+        auto * const ret = new spark::FullViewKey( createFullViewKey( *spend_key ) );
+#if SPARK_DEBUGGING_OUTPUT
+        std::cout << "createFullViewKey: " << ret << ' ' << ret->get_s1() << ' ' << ret->get_P2() << " from " << spend_key << std::endl;
+#endif
+        return ret;
     } catch ( const std::exception &e ) {
         std::cerr << "Error in createFullViewKey: " << e.what() << std::endl;
         return nullptr;
@@ -682,7 +723,11 @@ spark::IncomingViewKey *js_createIncomingViewKey( const spark::FullViewKey * con
          std::cerr << "Error calling createIncomingViewKey: Provided FullViewKey is null." << std::endl;
          return nullptr;
       }
-      return new spark::IncomingViewKey( createIncomingViewKey( *full_view_key ) );
+      auto * const ret = new spark::IncomingViewKey( createIncomingViewKey( *full_view_key ) );
+#if SPARK_DEBUGGING_OUTPUT
+      std::cout << "createIncomingViewKey: " << ret << ' ' << ret->get_s1() << ' ' << ret->get_P2() << " from " << full_view_key << std::endl;
+#endif
+      return ret;
    }
    catch ( const std::exception &e ) {
       std::cerr << "Error in createIncomingViewKey: " << e.what() << std::endl;
@@ -970,7 +1015,8 @@ std::int32_t js_getRecipientSubtractFeeFromAmountFlag( const CRecipient * const 
  * Returns:
  *   - Pointer to a dynamically allocated spark::Coin object on successful deserialization, or nullptr on failure.
  */
-spark::Coin *js_deserializeCoin( const unsigned char * const serialized_data, const std::uint32_t serialized_data_length )
+spark::Coin *js_deserializeCoin( const unsigned char * const serialized_data, const std::uint32_t serialized_data_length,
+                                 const unsigned char * const serial_context, const std::uint32_t serial_context_length )
 {
    try {
       if ( !serialized_data ) {
@@ -978,7 +1024,7 @@ spark::Coin *js_deserializeCoin( const unsigned char * const serialized_data, co
          return nullptr;
       }
 
-      return new spark::Coin( deserializeCoin( serialized_data, serialized_data_length ) );
+      return new spark::Coin( deserializeCoin( serialized_data, serialized_data_length, serial_context, serial_context_length ) );
    }
    catch ( const std::exception &e ) {
       std::cerr << "Error in deserializeCoin: " << e.what() << std::endl;
@@ -1035,10 +1081,17 @@ CSparkMintMeta *js_getMetadata( const spark::Coin * const coin, const spark::Inc
          return nullptr;
       }
       auto meta = std::make_unique< CSparkMintMeta >( getMetadata( *coin, *incoming_view_key ) );
+      static int success_count, failure_count;
       if ( meta->k.isZero() ) { // this is how getMetadata()'s failure can be detected, as currently implemented
-         std::cerr << "Wrapped getMetadata() function failed to return a proper CSparkMintMeta object." << std::endl;
+         ++failure_count;
+#if SPARK_DEBUGGING_OUTPUT
+         std::cout << "Wrapped getMetadata(" << coin << ',' << incoming_view_key << ") function failed to return a proper CSparkMintMeta object; nsuccess=" << success_count << " nfailure=" << failure_count << std::endl;
+#endif
          return nullptr;
       }
+      ++success_count;
+      // this output should be very rare in comparison to the number of failures, so perhaps it's ok to have this printed unconditionally
+      std::cout << "Wrapped getMetadata(" << coin << ',' << incoming_view_key << ") function succeeded in returning a proper CSparkMintMeta; nsuccess=" << success_count << " nfailure=" << failure_count << std::endl;
       return meta.release();
    }
    catch ( const std::exception &e ) {
