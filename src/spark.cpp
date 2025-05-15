@@ -148,7 +148,9 @@ std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(
         CAmount required,
         bool subtractFeeFromAmount,
         const std::list<CSparkMintMeta>& coins,
-        std::size_t mintNum) {
+        std::size_t mintNum,
+        std::size_t utxoNum,
+        std::size_t additionalTxSize) {
     CFeeRate fRate;
 
     CAmount fee;
@@ -166,9 +168,9 @@ std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(
             throw std::invalid_argument("Unable to select coins for spend");
         }
 
-        // 924 is constant part, mainly Schnorr and Range proofs, 2535 is for each grootle proof/aux data
-        // 213 for each private output, 144 other parts of tx,
-        size = 924 + 2535 * (spendCoins.size()) + 213 * mintNum + 144; //TODO (levon) take in account also utxoNum
+        // 1803 is for first grootle proof/aux data
+        // 213 for each private output, 34 for each utxo,924 constant parts of tx parts of tx,
+        size = 924 + 1803*(spendCoins.size()) + 322*(mintNum+1) + 34 * utxoNum + additionalTxSize;
         CAmount feeNeeded = size;
 
         if (fee >= feeNeeded) {
@@ -209,6 +211,7 @@ void createSparkSpendTransaction(
         const std::unordered_map<uint64_t, spark::CoverSetData>& cover_set_data_all,
         const std::map<uint64_t, uint256>& idAndBlockHashes_all,
         const uint256& txHashSig,
+        std::size_t additionalTxSize,
         CAmount &fee,
         std::vector<uint8_t>& serializedSpend,
         std::vector<std::vector<unsigned char>>& outputScripts,
@@ -251,7 +254,7 @@ void createSparkSpendTransaction(
         throw std::runtime_error("Spend to transparent address limit exceeded (10,000 Firo per transaction).");
 
     std::pair<CAmount, std::vector<CSparkMintMeta>> estimated =
-            SelectSparkCoins(vOut + mintVOut, recipientsToSubtractFee, coins, privateRecipients.size());
+            SelectSparkCoins(vOut + mintVOut, recipientsToSubtractFee, coins, privateRecipients.size(), recipients.size(), additionalTxSize);
 
     auto recipients_ = recipients;
     auto privateRecipients_ = privateRecipients;

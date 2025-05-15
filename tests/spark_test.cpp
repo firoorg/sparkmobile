@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
     mint.coin = coin;
     coins.push_back(mint);
 
-    std::pair<CAmount, std::vector<CSparkMintMeta>> r = SelectSparkCoins(1, true, coins, coins.size());
+    std::pair<CAmount, std::vector<CSparkMintMeta>> r = SelectSparkCoins(1, true, coins, coins.size(), 0, 0);
     BOOST_CHECK_EQUAL(r.second.size(), 1);
 }
 

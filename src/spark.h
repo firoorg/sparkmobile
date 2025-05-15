@@ -9,7 +9,7 @@
 #include <list>
 
 std::pair<CAmount, std::vector<CSparkMintMeta>>
-SelectSparkCoins(CAmount required, bool subtractFeeFromAmount, const std::list<CSparkMintMeta>& coins, std::size_t mintNum);
+SelectSparkCoins(CAmount required, bool subtractFeeFromAmount, const std::list<CSparkMintMeta>& coins, std::size_t mintNum, std::size_t utxoNum, std::size_t additionalTxSize);
 
 bool GetCoinsToSpend(
         CAmount required,
