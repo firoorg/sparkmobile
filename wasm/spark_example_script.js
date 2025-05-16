@@ -163,16 +163,18 @@ spark().then(
    console.log("Address string (main):", address_enc_main);
 
 
-
        // Create MintedCoinData objects
        const outputsLength = 2; // Example: 2 outputs
        const outputsArray = [];
 
        for (let i = 0n; i < outputsLength; i++) {
-           const mintedCoinData = Module._js_createMintedCoinData(
-               addressObj,
-               1000n + i * 100n, // Example amount
-               `Memo ${i}` // Example memo
+           const mintedCoinData = Module.ccall(
+              "js_createMintedCoinData",  // C++ function name
+              "number",                   // Return type
+              ["number", "number", "string"],  // Argument types
+              [addressObj,
+                 1000n + i * 100n, // Example amount
+                 `Memo ${i}`]  // Example memo
            );
            if (!mintedCoinData) {
                throw new Error(`Failed to create MintedCoinData for index ${i}`);
@@ -195,35 +197,68 @@ spark().then(
        Module.HEAPU8.set(serialContext, serialContextPointer); // Copy to Wasm memory
 
        // Call the `js_createSparkMintRecipients` function
-       const recipientsVectorPtr = Module._js_createSparkMintRecipients(
-           outputsPointerArray,            // Pointer array with minted coin data
-           outputsLength,                  // Length of the outputs array
-           serialContextPointer,           // Pointer to the serial context
-           serialContext.length,           // Length of the serial context
-           1                               // Generate flag (true)
+       const recipientsVectorPtr = Module.ccall(
+           "js_createSparkMintRecipients",       // C++ function name
+           "number",                             // Return type
+           ["number", "number", "number", "number", "number"], // Argument types
+           [
+               outputsPointerArray,              // Pointer array with minted coin data
+               outputsLength,                    // Length of the outputs array
+               serialContextPointer,             // Pointer to the serial context
+               serialContext.length,             // Length of the serial context
+               1                                 // Generate flag (true)
+           ]
        );
-
        if (!recipientsVectorPtr) {
            throw new Error('Failed to call `js_createSparkMintRecipients`.');
        }
 
        // Process the recipient data
-       const recipientsLength = Module._js_getRecipientVectorLength(recipientsVectorPtr);
+       const recipientsLength = Module.ccall(
+           "js_getRecipientVectorLength",  // C++ function name
+           "number",                       // Return type
+           ["number"],                     // Argument types
+           [recipientsVectorPtr]           // Arguments
+       );
        console.log(`Number of Recipients: ${recipientsLength}`);
 
        for (let i = 0; i < recipientsLength; i++) {
-           const recipientPtr = Module._js_getRecipientAt(recipientsVectorPtr, i);
+           const recipientPtr = Module.ccall(
+               "js_getRecipientAt",     // C++ function name
+               "number",                // Return type
+               ["number", "number"],    // Argument types
+               [recipientsVectorPtr, i] // Arguments
+           );
 
            // Access the recipient fields
-           const scriptPubKeySize = Module._js_getRecipientScriptPubKeySize(recipientPtr);
-           const scriptPubKeyPointer = Module._js_getRecipientScriptPubKey(recipientPtr);
+           const scriptPubKeySize = Module.ccall(
+               "js_getRecipientScriptPubKeySize",    // C++ function name
+               "number",                             // Return type
+               ["number"],                           // Argument types
+               [recipientPtr]                        // Arguments
+           );
+           const scriptPubKeyPointer = Module.ccall(
+               "js_getRecipientScriptPubKey",       // C++ function name
+               "number",                            // Return type
+               ["number"],                          // Argument types
+               [recipientPtr]                       // Arguments
+           );
            const scriptPubKey = new Uint8Array(scriptPubKeySize);
            for (let j = 0; j < scriptPubKeySize; j++) {
                scriptPubKey[j] = Module.HEAPU8[scriptPubKeyPointer + j];
            }
-
-           const amount = Module._js_getRecipientAmount(recipientPtr);
-           const subtractFeeFlag = Module._js_getRecipientSubtractFeeFromAmountFlag(recipientPtr);
+           const amount = Module.ccall(
+               "js_getRecipientAmount",             // C++ function name
+               "number",                            // Return type
+               ["number"],                          // Argument types
+               [recipientPtr]                       // Arguments
+           );
+           const subtractFeeFlag = Module.ccall(
+               "js_getRecipientSubtractFeeFromAmountFlag", // C++ function name
+               "number",                                   // Return type
+               ["number"],                                 // Argument types
+               [recipientPtr]                              // Arguments
+           );
 
            // Log the received recipient
            console.log(`Recipient ${i}:`);
@@ -233,6 +268,8 @@ spark().then(
        }
 
        // Free allocated memory
+       Module._free(serialContextPointer);
+       Module._free(outputsPointerArray);
        Module.ccall("js_freeRecipientVector", null, ["number"], [recipientsVectorPtr]);
        Module.ccall("js_freeAddress", null, ["number"], [addressObj]);
        Module.ccall("js_freeIncomingViewKey", null, ["number"], [incomingViewKeyObj]);
@@ -240,8 +277,6 @@ spark().then(
        Module.ccall("js_freeSpendKey", null, ["number"], [spendKeyObj]);
        Module.ccall("js_freeSpendKeyData", null, ["number"], [spendKeyDataObj]);
        Module._free(keyDataPtr);
-       Module._free(outputsPointerArray);
-       Module._free(serialContextPointer);
 
    } catch (error) {
        console.error('Error:', error);
