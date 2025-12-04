@@ -1279,6 +1279,18 @@ const char *js_getCSparkMintMetaMemo( const CSparkMintMeta * const meta )
    return meta->memo.c_str();
 }
 
+// Access Scalar attribute "k" (nonce) from CSparkMintMeta
+const char *js_getCSparkMintMetaNonce( const CSparkMintMeta *const meta )
+{
+   if ( !meta ) {
+      std::cerr << "Error in getCSparkMintMetaNonce: Provided CSparkMintMeta pointer is null." << std::endl;
+      return nullptr;   // Return null to indicate an error
+   }
+   static std::string k;
+   k = meta->k.GetHex();
+   return k.c_str();
+}
+
 // Access integral attribute "i" (diversifier) from CSparkMintMeta
 std::uint64_t js_getCSparkMintMetaDiversifier( const CSparkMintMeta * const meta )
 {
@@ -1319,6 +1331,44 @@ const spark::Coin *js_getCSparkMintMetaCoin( const CSparkMintMeta * const meta )
    return &meta->coin;
 }
 
+// Set integral attribute "nId" for CSparkMintMeta
+void js_setCSparkMintMetaId( CSparkMintMeta * const meta, const std::int32_t id )
+{
+   if ( !meta ) {
+      std::cerr << "Error in setCSparkMintMetaId: Provided CSparkMintMeta pointer is null." << std::endl;
+      return;
+   }
+   meta->nId = id;
+}
+
+// Set integral attribute "nHeight" for CSparkMintMeta
+void js_setCSparkMintMetaHeight( CSparkMintMeta * const meta, const std::int32_t height )
+{
+   if ( !meta ) {
+      std::cerr << "Error in setCSparkMintMetaHeight: Provided CSparkMintMeta pointer is null." << std::endl;
+      return;
+   }
+   meta->nHeight = height;
+}
+
+// Get hash of a spark::Coin
+const char *js_getCoinHash( const spark::Coin * const coin )
+{
+   try {
+      if ( !coin ) {
+         std::cerr << "Error in getCoinHash: Provided Coin pointer is null." << std::endl;
+         return nullptr;
+      }
+      static std::string hash;
+      hash = coin->getHash().GetHex();
+      return hash.c_str();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getCoinHash: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
 // Access integral attribute "cover_set_id" from InputCoinData
 std::uint64_t js_getInputCoinDataCoverSetId( const spark::InputCoinData * const input_coin_data )
 {
@@ -1349,6 +1399,31 @@ std::uint64_t js_getInputCoinDataValue( const spark::InputCoinData * const input
    return input_coin_data->v;
 }
 
+// Access attribute "T" from InputCoinData representation as hex string
+const char *js_getInputCoinDataTag_hex( const spark::InputCoinData * const input_coin_data )
+{
+   if ( !input_coin_data ) {
+      std::cerr << "Error in getInputCoinDataTag_hex: Provided InputCoinData pointer is null." << std::endl;
+      return nullptr;
+   }
+   static std::string tag_hex;
+   tag_hex = input_coin_data->T.GetHex();
+   return tag_hex.c_str();
+}
+
+// Access attribute "T" from InputCoinData, serialized then converted to base64
+const char *js_getInputCoinDataTag_base64( const spark::InputCoinData * const input_coin_data )
+{
+   if ( !input_coin_data ) {
+      std::cerr << "Error in getInputCoinDataTag_base64: Provided InputCoinData pointer is null." << std::endl;
+      return nullptr;
+   }
+   std::array< unsigned char, 34 > bytes;
+   input_coin_data->T.serialize( bytes.data() );
+   static std::string tag_base64;
+   tag_base64 = EncodeBase64( bytes.data(), bytes.size() );
+   return tag_base64.c_str();
+}
 // Free memory allocated for SpendKeyData
 void js_freeSpendKeyData( SpendKeyData *spend_key_data )
 {

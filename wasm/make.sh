@@ -21,7 +21,9 @@ emcc -std=c++17 -O3 -fexceptions -s WASM=1 -s USE_BOOST_HEADERS=1 -s ALLOW_MEMOR
                              '_js_getIdentifiedCoinDiversifier', '_js_getIdentifiedCoinValue', '_js_getIdentifiedCoinMemo',
                              '_js_getCSparkMintMetaHeight', '_js_getCSparkMintMetaId', '_js_getCSparkMintMetaIsUsed', '_js_getCSparkMintMetaMemo',
                              '_js_getCSparkMintMetaDiversifier', '_js_getCSparkMintMetaValue', '_js_getCSparkMintMetaType', '_js_getCSparkMintMetaCoin',
+                             '_js_getCSparkMintMetaNonce', '_js_setCSparkMintMetaId', '_js_setCSparkMintMetaHeight', '_js_getCoinHash',
                              '_js_getInputCoinDataCoverSetId', '_js_getInputCoinDataIndex', '_js_getInputCoinDataValue',
+                             '_js_getInputCoinDataTag_hex', '_js_getInputCoinDataTag_base64',
                              '_js_freeSpendKeyData', '_js_freeSpendKey', '_js_freeFullViewKey', '_js_freeIncomingViewKey',
                              '_js_freeAddress', '_js_freeRecipientVector', '_js_freeCSparkMintMeta', '_js_freeInputCoinData',
                              '_js_freeIdentifiedCoinData', '_js_freeCoin', '_malloc', '_free']" \
