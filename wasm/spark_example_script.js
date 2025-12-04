@@ -287,6 +287,15 @@ spark().then(
        }
        console.log("Deserialized Coin:", deserializedCoinObj);
 
+       // Get coin hash
+       const coinHash = Module.ccall(
+          "js_getCoinHash",              // C++ function name
+          "string",                      // Return type
+          ["number"],                    // Argument types
+          [deserializedCoinObj]          // Arguments
+       );
+       console.log("Coin Hash:", coinHash);
+
        // Example usage of `js_getMetadata`
        const metadataObj = Module.ccall(
            "js_getMetadata",               // C++ function name
@@ -350,7 +359,25 @@ spark().then(
               [inputDataObj]                  // Arguments
           );
           console.log("Input Coin Data Value:", inputValue);
-          
+
+          // Get Input Coin Data Tag (T) as hex
+          const inputTagHex = Module.ccall(
+              "js_getInputCoinDataTag_hex",   // C++ function name
+              "string",                       // Return type
+              ["number"],                     // Argument types
+              [inputDataObj]                  // Arguments
+          );
+          console.log("Input Coin Data Tag (hex):", inputTagHex);
+
+          // Get Input Coin Data Tag (T) as base64
+          const inputTagBase64 = Module.ccall(
+              "js_getInputCoinDataTag_base64", // C++ function name
+              "string",                        // Return type
+              ["number"],                      // Argument types
+              [inputDataObj]                   // Arguments
+          );
+          console.log("Input Coin Data Tag (base64):", inputTagBase64);
+
           // Get Input Data With Meta
           const inputDataWithMetaObj = Module.ccall(
               "js_getInputDataWithMeta",      // C++ function name
@@ -409,6 +436,22 @@ spark().then(
           console.log("Identified Coin Memo:", memo);
        }
 
+       // Set Spark Mint Meta ID
+       Module.ccall(
+           "js_setCSparkMintMetaId",     // C++ function name
+           null,                         // Return type
+           ["number", "number"],         // Argument types
+           [metadataObj, 12345]          // Arguments - example ID value
+       );
+
+       // Set Spark Mint Meta Height
+       Module.ccall(
+           "js_setCSparkMintMetaHeight",  // C++ function name
+           null,                          // Return type
+           ["number", "number"],          // Argument types
+           [metadataObj, 54321]           // Arguments - example height value
+       );
+
        // Get Spark Mint Meta Height
        const metaHeight = Module.ccall(
            "js_getCSparkMintMetaHeight",  // C++ function name
@@ -417,7 +460,7 @@ spark().then(
            [metadataObj]                  // Arguments
        );
        console.log("Spark Mint Meta Height:", metaHeight);
-       
+
        // Get Spark Mint Meta ID
        const metaId = Module.ccall(
            "js_getCSparkMintMetaId",     // C++ function name
@@ -471,7 +514,16 @@ spark().then(
            [metadataObj]                 // Arguments
        );
        console.log("Spark Mint Meta Type:", metaType);
-       
+
+       // Get Spark Mint Meta Nonce
+       const metaNonce = Module.ccall(
+           "js_getCSparkMintMetaNonce",   // C++ function name
+           "string",                      // Return type
+           ["number"],                    // Argument types
+           [metadataObj]                  // Arguments
+       );
+       console.log("Spark Mint Meta Nonce:", metaNonce);
+
        // Get Spark Mint Meta Coin
        const metaCoinObj = Module.ccall(
            "js_getCSparkMintMetaCoin",   // C++ function name
