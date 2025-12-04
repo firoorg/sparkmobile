@@ -24,8 +24,22 @@ emcc -std=c++17 -O3 -fexceptions -s WASM=1 -s USE_BOOST_HEADERS=1 -s ALLOW_MEMOR
                              '_js_getCSparkMintMetaNonce', '_js_setCSparkMintMetaId', '_js_setCSparkMintMetaHeight', '_js_getCoinHash',
                              '_js_getInputCoinDataCoverSetId', '_js_getInputCoinDataIndex', '_js_getInputCoinDataValue',
                              '_js_getInputCoinDataTag_hex', '_js_getInputCoinDataTag_base64',
+                             '_js_createRecipientsVectorForCreateSparkSpendTransaction', '_js_addRecipientForCreateSparkSpendTransaction',
+                             '_js_createPrivateRecipientsVectorForCreateSparkSpendTransaction', '_js_addPrivateRecipientForCreateSparkSpendTransaction',
+                             '_js_createCoinsListForCreateSparkSpendTransaction', '_js_addCoinToListForCreateSparkSpendTransaction',
+                             '_js_createCoverSetData', '_js_addCoinToCoverSetData', '_js_createCoverSetDataMapForCreateSparkSpendTransaction',
+                             '_js_addCoverSetDataForCreateSparkSpendTransaction', '_js_moveAddCoverSetDataForCreateSparkSpendTransaction',
+                             '_js_createIdAndBlockHashesMapForCreateSparkSpendTransaction', '_js_addIdAndBlockHashForCreateSparkSpendTransaction',
+                             '_js_createSparkSpendTransaction',
+                             '_js_getCreateSparkSpendTxResultSerializedSpend', '_js_getCreateSparkSpendTxResultSerializedSpendSize',
+                             '_js_getCreateSparkSpendTxResultOutputScriptsSize', '_js_getCreateSparkSpendTxResultOutputScriptAt',
+                             '_js_getCreateSparkSpendTxResultOutputScriptSizeAt', '_js_getCreateSparkSpendTxResultSpentCoinsSize',
+                             '_js_getCreateSparkSpendTxResultSpentCoinAt', '_js_getCreateSparkSpendTxResultFee',
                              '_js_freeSpendKeyData', '_js_freeSpendKey', '_js_freeFullViewKey', '_js_freeIncomingViewKey',
                              '_js_freeAddress', '_js_freeRecipientVector', '_js_freeCSparkMintMeta', '_js_freeInputCoinData',
-                             '_js_freeIdentifiedCoinData', '_js_freeCoin', '_malloc', '_free']" \
+                             '_js_freeIdentifiedCoinData', '_js_freeCoin', 
+                             '_js_freeSparkSpendRecipientsVector', '_js_freeSparkSpendPrivateRecipientsVector', '_js_freeSparkSpendCoinsList',
+                             '_js_freeCoverSetData', '_js_freeCoverSetDataMapForCreateSparkSpendTransaction', '_js_freeIdAndBlockHashesMap',
+                             '_js_freeCreateSparkSpendTxResult', '_malloc', '_free']" \
      -s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" \
      -o spark.html ../src/*.cpp ../bitcoin/*.cpp ../bitcoin/support/*.cpp ../bitcoin/crypto/*.cpp

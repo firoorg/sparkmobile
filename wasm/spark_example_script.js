@@ -532,8 +532,212 @@ spark().then(
            [metadataObj]                 // Arguments
        );
        console.log("Spark Mint Meta Coin:", metaCoinObj);
+       
+
+       // Create Spend tx
+
+       // Create recipients vector for spend transaction
+       const recipientsVector = Module.ccall(
+           "js_createRecipientsVectorForCreateSparkSpendTransaction",
+           "number",
+           ["number"],
+           [1] // intended final size
+       );
+
+       // Add a recipient (example with 1000 amount, subtract_fee_from_amount = false)
+       Module.ccall(
+           "js_addRecipientForCreateSparkSpendTransaction",
+           null,
+           ["number", "number", "number"],
+           [recipientsVector, 1000n, 0]
+       );
+
+       // Create private recipients vector
+       const privateRecipientsVector = Module.ccall(
+           "js_createPrivateRecipientsVectorForCreateSparkSpendTransaction",
+           "number",
+           ["number"],
+           [1] // intended final size
+       );
+
+       // Add a private recipient (using the previously created address), subtract_fee_from_amount = true
+       Module.ccall(
+           "js_addPrivateRecipientForCreateSparkSpendTransaction",
+           null,
+           ["number", "number", "number", "string", "number"],
+           [privateRecipientsVector, addressObj, 500n, "Private memo", 1]
+       );
+
+       // Create coins list
+       const coinsList = Module.ccall(
+           "js_createCoinsListForCreateSparkSpendTransaction",
+           "number",
+           [],
+           []
+       );
+
+       // Add coins to the list
+       Module.ccall(
+           "js_addCoinToListForCreateSparkSpendTransaction",
+           null,
+           ["number", "number"],
+           [coinsList, metadataObj]
+       );
+
+       // Cover set representation (dummy data)
+       const coverSetRepresentation = new Uint8Array([0x21, 0x43, 0x65, 0x87, 0xA9, 0xCB]);
+       const coverSetRepresentationPointer = Module._malloc(coverSetRepresentation.length);
+       Module.HEAPU8.set(coverSetRepresentation, coverSetRepresentationPointer); // Copy to Wasm memory
+
+       // Create cover set data
+       const coverSetData = Module.ccall(
+           "js_createCoverSetData",
+           "number",
+           ["number", "number"],
+           [coverSetRepresentationPointer, coverSetRepresentation.length]
+       );
+
+       // Add coin to cover set data
+       Module.ccall(
+           "js_addCoinToCoverSetData",
+           null,
+           ["number", "number"],
+           [coverSetData, deserializedCoinObj]
+       );
+
+       // Create cover set data map
+       const coverSetDataMap = Module.ccall(
+           "js_createCoverSetDataMapForCreateSparkSpendTransaction",
+           "number",
+           [],
+           []
+       );
+
+       // Add cover set data to map (with group ID 1)
+       Module.ccall(
+           "js_addCoverSetDataForCreateSparkSpendTransaction",
+           null,
+           ["number", "number", "number"],
+           [coverSetDataMap, 1n, coverSetData]
+       );
+
+       // Create ID and block hashes map
+       const idAndBlockHashesMap = Module.ccall(
+           "js_createIdAndBlockHashesMapForCreateSparkSpendTransaction",
+           "number",
+           [],
+           []
+       );
+
+       // Add ID and block hash (group ID 1 and example hash)
+       const blockHash = "81a7532f46b9c124d83e96a45f2dc37b19465f8a23b1e4d95c7f8b6a3d9b2c1e";
+       Module.ccall(
+           "js_addIdAndBlockHashForCreateSparkSpendTransaction",
+           null,
+           ["number", "number", "string"],
+           [idAndBlockHashesMap, 1n, blockHash]
+       );
+
+       // dummy values
+       const txHashSigHex = "2f4e8d3a1b5c9f7d6e0483c2b917a5462d8f3c1b9a7e5d4f8c2b6a0937e1d4c";
+       const additionalTxSize = 15;
+
+       // Create the spend transaction
+       const txHashSig = new Uint8Array([ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20 ]);
+       const txHashSigPointer = Module._malloc(txHashSig.length);
+       Module.HEAPU8.set(txHashSig, txHashSigPointer);
+       const result = Module.ccall(
+           "js_createSparkSpendTransaction",
+           "number",
+           ["number", "number", "number", "number", "number", "number", "number", "number", "number", "string", "number"],
+           [spendKeyObj, fullViewKeyObj, incomingViewKeyObj, recipientsVector, privateRecipientsVector,
+            coinsList, coverSetDataMap, idAndBlockHashesMap, txHashSigHex, additionalTxSize]
+       );
+
+       if (result) {
+           // Get transaction details
+
+           const serializedSpend = Module.ccall(
+               "js_getCreateSparkSpendTxResultSerializedSpend",
+               "number",   // returns a pointer to the beginning of a byte array
+               ["number"],
+               [result]
+           );
+
+           const serializedSpendSize = Module.ccall(
+               "js_getCreateSparkSpendTxResultSerializedSpendSize",
+               "number",
+               ["number"],
+               [result]
+           );
+
+           const outputScriptsSize = Module.ccall(
+               "js_getCreateSparkSpendTxResultOutputScriptsSize",
+               "number",
+               ["number"],
+               [result]
+           );
+
+           // Get each output script
+           for (let i = 0; i < outputScriptsSize; i++) {
+               const script = Module.ccall(
+                   "js_getCreateSparkSpendTxResultOutputScriptAt",
+                   "number",   // returns a pointer to the beginning of a byte array
+                   ["number", "number"],
+                   [result, i]
+               );
+
+               const scriptSize = Module.ccall(
+                   "js_getCreateSparkSpendTxResultOutputScriptSizeAt",
+                   "number",
+                   ["number", "number"],
+                   [result, i]
+               );
+               console.log(`Output script ${i} size: ${scriptSize}`);
+           }
+
+           // Get spent coins information
+           const spentCoinsSize = Module.ccall(
+               "js_getCreateSparkSpendTxResultSpentCoinsSize",
+               "number",
+               ["number"],
+               [result]
+           );
+
+           for (let i = 0; i < spentCoinsSize; i++) {
+               const spentCoinMeta = Module.ccall(
+                   "js_getCreateSparkSpendTxResultSpentCoinAt",
+                   "number",
+                   ["number", "number"],
+                   [result, i]
+               );
+               const spentCoinValue = Module.ccall(
+                   "js_getCSparkMintMetaValue",
+                   "number",
+                   ["number"],
+                   [spentCoinMeta]
+               );
+               console.log(`Spent coin ${i} having value ${spentCoinValue} retrieved`);
+           }
+
+           // Get transaction fee
+           const fee = Module.ccall(
+               "js_getCreateSparkSpendTxResultFee",
+               "number",
+               ["number"],
+               [result]
+           );
+           console.log(`Transaction fee: ${fee}`);
+       }
 
        // Free allocated memory
+       Module.ccall("js_freeCreateSparkSpendTxResult", null, ["number"], [result]);
+       Module.ccall("js_freeSparkSpendRecipientsVector", null, ["number"], [recipientsVector]);
+       Module.ccall("js_freeSparkSpendPrivateRecipientsVector", null, ["number"], [privateRecipientsVector]);
+       Module.ccall("js_freeSparkSpendCoinsList", null, ["number"], [coinsList]);
+       Module.ccall("js_freeCoverSetData", null, ["number"], [coverSetData]);
+       Module.ccall("js_freeCoverSetDataMapForCreateSparkSpendTransaction", null, ["number"], [coverSetDataMap]);
+       Module.ccall("js_freeIdAndBlockHashesMap", null, ["number"], [idAndBlockHashesMap]);
        Module.ccall("js_freeCoin", null, ["number"], [deserializedCoinObj]);
        Module.ccall("js_freeIdentifiedCoinData", null, ["number"], [identifiedCoinObj]);
        Module.ccall("js_freeCSparkMintMeta", null, ["number"], [metadataObj]);

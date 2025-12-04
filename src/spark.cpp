@@ -613,6 +613,93 @@ static std::string to_hex_string( const unsigned char * const data, const size_t
    return ss.str();
 }
 
+#if SPARK_DEBUGGING_OUTPUT
+
+template < class C >
+struct container_streamer {
+   explicit container_streamer( const C &c ) : c_( c ) {}
+
+   friend std::ostream &operator<<( std::ostream &os, const container_streamer &s )
+   {
+      // if size > 40, printing just first & last 20, otherwise all of the elements
+      const auto count = s.c_.size();
+      if ( count == 0 )
+         return os << "[]";
+      const bool too_large = count > 40;
+      os << '[' << count << "| ";
+      bool first = true;
+#if __cplusplus >= 202002L  // TODO
+      for ( const auto &e : s.c_ | std::views::take( too_large ? 20 : count ) ) {
+#else
+      auto n = too_large ? 20 : count;
+      for ( auto it = s.c_.cbegin(); n; --n, ++it ) {
+         const auto &e = *it;
+#endif
+         if ( !first ) {
+            os << ", ";
+            first = false;
+         }
+         os << e;
+      }
+      if ( too_large ) {
+         os << ", ...";
+#if __cplusplus >= 202002L  // TODO
+         for ( const auto &e : s.c_ | std::views::drop( count - 20 ) ) {
+#else
+         for ( auto it = std::prev( s.c_.cend(), 20 ); it != s.c_.end(); ++it ) {
+            const auto &e = *it;
+#endif
+            os << ", " << e;
+         }
+      }
+      return os << " ]";
+   }
+
+private:
+   const C &c_;
+};
+
+namespace std {
+template < typename  F, typename S >
+std::ostream &operator<<( std::ostream &os, const std::pair< F, S > &p )
+{
+   return os << p.first << " -> " << p.second;
+}
+}
+
+template < unsigned int Bits >
+std::ostream &operator<<( std::ostream &os, const base_blob< Bits > &b )
+{
+   return os << b.GetHex();
+}
+
+namespace spark {
+
+std::ostream &operator<<( std::ostream &os, const Coin &c )
+{
+   return os << "{ hash=" << c.getHash() << " }";
+}
+
+std::ostream &operator<<( std::ostream &os, const CoverSetData &c )
+{
+   return os << container_streamer( c.cover_set ) << " " << to_hex_string( c.cover_set_representation.data(), c.cover_set_representation.size() );
+}
+
+std::ostream &operator<<( std::ostream &os, const OutputCoinData &d )
+{
+   return os << "{ address=" << d.address.encode( ADDRESS_NETWORK_MAINNET ) << ", v=" << d.v << ", memo='" << d.memo << "' }";
+}
+
+}
+
+std::ostream &operator<<( std::ostream &os, const CSparkMintMeta &m )
+{
+   return os << "{ height=" << m.nHeight << ", id=" << m.nId << ", used=" << m.isUsed << ", txid = " << m.txid << ", v=" << m.v << ", i=" << m.i << ", k=" << m.k << ", memo='" << m.memo
+             << "', type=" << +m.type << ", d=" << to_hex_string( m.d.data(), m.d.size() ) << ", coin=" << m.coin << " }";
+}
+
+#endif   // SPARK_DEBUGGING_OUTPUT
+
 extern "C" {
 
 SpendKeyData *js_createSpendKeyData( const unsigned char * const keydata, const std::int32_t index )
@@ -1425,6 +1512,423 @@ const char *js_getInputCoinDataTag_base64( const spark::InputCoinData * const in
    tag_base64 = EncodeBase64( bytes.data(), bytes.size() );
    return tag_base64.c_str();
 }
+
+// Create vector for `recipients` used in createSparkSpendTransaction
+std::vector< std::pair< CAmount, bool > > *js_createRecipientsVectorForCreateSparkSpendTransaction( std::int32_t intended_final_size )
+{
+   try {
+      auto v = std::make_unique< std::vector< std::pair< CAmount, bool > > >();
+      if ( intended_final_size > 0 )
+         v->reserve( intended_final_size );
+      return v.release();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in createRecipientsVectorForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+// Add recipient to vector used in createSparkSpendTransaction
+std::int32_t js_addRecipientForCreateSparkSpendTransaction( std::vector< std::pair< CAmount, bool > > * const recipients, const CAmount amount, const std::int32_t subtract_fee_from_amount )
+{
+   try {
+      if ( !recipients ) {
+         std::cerr << "Error in addRecipientForCreateSparkSpendTransaction: Provided recipients pointer is null." << std::endl;
+         return false;
+      }
+      recipients->emplace_back( amount, !!subtract_fee_from_amount );
+      return true;
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in addRecipientForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return false;
+   }
+}
+
+// Create vector for private recipients used in createSparkSpendTransaction
+std::vector< std::pair< spark::OutputCoinData, bool > > *js_createPrivateRecipientsVectorForCreateSparkSpendTransaction( std::int32_t intended_final_size )
+{
+   try {
+      auto v = std::make_unique< std::vector< std::pair< spark::OutputCoinData, bool > > >();
+      if ( intended_final_size > 0 )
+         v->reserve( intended_final_size );
+      return v.release();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in createPrivateRecipientsVectorForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+// Add private recipient to vector used in createSparkSpendTransaction
+std::int32_t js_addPrivateRecipientForCreateSparkSpendTransaction( std::vector< std::pair< spark::OutputCoinData, bool > > * const private_recipients,
+                                                                   const spark::Address * const address,
+                                                                   const std::uint64_t value,
+                                                                   const char * const memo,
+                                                                   const std::int32_t subtract_fee_from_amount )
+{
+   try {
+      if ( !private_recipients ) {
+         std::cerr << "Error in addPrivateRecipientForCreateSparkSpendTransaction: Provided private_recipients pointer is null." << std::endl;
+         return false;
+      }
+      if ( !address ) {
+         std::cerr << "Error in addPrivateRecipientForCreateSparkSpendTransaction: Provided address pointer is null." << std::endl;
+         return false;
+      }
+      if ( !memo ) {
+         std::cerr << "Error in addPrivateRecipientForCreateSparkSpendTransaction: Provided memo pointer is null." << std::endl;
+         return false;
+      }
+      private_recipients->emplace_back( spark::OutputCoinData{ *address, value, memo }, !!subtract_fee_from_amount );
+      return true;
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in addPrivateRecipientForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return false;
+   }
+}
+
+// Create list of coins for createSparkSpendTransaction
+std::list< CSparkMintMeta > *js_createCoinsListForCreateSparkSpendTransaction()
+{
+   try {
+      return new std::list< CSparkMintMeta >();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in createCoinsListForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+// Add coin to coins list used in createSparkSpendTransaction
+std::int32_t js_addCoinToListForCreateSparkSpendTransaction( std::list< CSparkMintMeta > * const coins, const CSparkMintMeta * const coin )
+{
+   try {
+      if ( !coins ) {
+         std::cerr << "Error in addCoinToListForCreateSparkSpendTransaction: Provided coins list pointer is null." << std::endl;
+         return false;
+      }
+      if ( !coin ) {
+         std::cerr << "Error in addCoinToListForCreateSparkSpendTransaction: Provided coin pointer is null." << std::endl;
+         return false;
+      }
+      coins->push_back( *coin );
+      return true;
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in addCoinToListForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return false;
+   }
+}
+
+spark::CoverSetData *js_createCoverSetData( const unsigned char * const representation, std::uint32_t representation_length )
+{
+   try {
+      if ( !representation ) {
+         std::cerr << "Error in createCoverSetData: Provided representation pointer is null." << std::endl;
+         return nullptr;
+      }
+      if ( std::all_of( representation, representation + representation_length, []( const unsigned char &c ) { return c == 0; } ) )
+         representation_length = 0;
+      return new spark::CoverSetData{ {}, { representation, representation + representation_length } };
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in createCoverSetData: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+std::int32_t js_addCoinToCoverSetData( spark::CoverSetData * const cover_set_data, const spark::Coin * const coin )
+{
+   try {
+      if ( !cover_set_data ) {
+         std::cerr << "Error in addCoinToCoverSetData: Provided cover_set_data pointer is null." << std::endl;
+         return false;
+      }
+      if ( !coin ) {
+         std::cerr << "Error in addCoinToCoverSetData: Provided coin pointer is null." << std::endl;
+         return false;
+      }
+      cover_set_data->cover_set.push_back( *coin );
+      return true;
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in addCoinToCoverSetData: " << e.what() << std::endl;
+      return false;
+   }
+}
+
+std::unordered_map< std::uint64_t, spark::CoverSetData > *js_createCoverSetDataMapForCreateSparkSpendTransaction()
+{
+   try {
+      return new std::unordered_map< std::uint64_t, spark::CoverSetData >();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in createCoverSetDataMapForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+std::int32_t js_addCoverSetDataForCreateSparkSpendTransaction( std::unordered_map< std::uint64_t, spark::CoverSetData > * const cover_set_data_map,
+                                                               const std::uint64_t group_id, const spark::CoverSetData * const data )
+{
+   try {
+      if ( !cover_set_data_map ) {
+         std::cerr << "Error in addCoverSetDataForCreateSparkSpendTransaction: Provided cover_set_data pointer is null." << std::endl;
+         return false;
+      }
+      if ( !data ) {
+         std::cerr << "Error in addCoverSetDataForCreateSparkSpendTransaction: Provided data pointer is null." << std::endl;
+         return false;
+      }
+      cover_set_data_map->emplace( group_id, *data );
+      return true;
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in addCoverSetDataForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return false;
+   }
+}
+
+std::int32_t js_moveAddCoverSetDataForCreateSparkSpendTransaction( std::unordered_map< std::uint64_t, spark::CoverSetData > * const cover_set_data_map,
+                                                                   const std::uint64_t group_id, spark::CoverSetData * const data )
+{
+   try {
+      if ( !cover_set_data_map ) {
+         std::cerr << "Error in moveAddCoverSetDataForCreateSparkSpendTransaction: Provided cover_set_data pointer is null." << std::endl;
+         return false;
+      }
+      if ( !data ) {
+         std::cerr << "Error in moveAddCoverSetDataForCreateSparkSpendTransaction: Provided data pointer is null." << std::endl;
+         return false;
+      }
+      cover_set_data_map->emplace( group_id, std::move( *data ) );
+      return true;
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in moveAddCoverSetDataForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return false;
+   }
+}
+
+std::map< std::uint64_t, uint256 > *js_createIdAndBlockHashesMapForCreateSparkSpendTransaction()
+{
+   try {
+      return new std::map< std::uint64_t, uint256 >();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in createIdAndBlockHashesMapForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+std::int32_t js_addIdAndBlockHashForCreateSparkSpendTransaction( std::map< std::uint64_t, uint256 > * const id_and_block_hashes_map,
+                                                                 const std::uint64_t group_id, const char * const block_hash )
+{
+   try {
+      if ( !id_and_block_hashes_map ) {
+         std::cerr << "Error in addIdAndBlockHashForCreateSparkSpendTransaction: Provided id_and_block_hashes_map pointer is null." << std::endl;
+         return false;
+      }
+      if ( !block_hash ) {
+         std::cerr << "Error in addIdAndBlockHashForCreateSparkSpendTransaction: Provided block_hash pointer is null." << std::endl;
+         return false;
+      }
+      id_and_block_hashes_map->emplace( group_id, uint256S( block_hash ) );
+      return true;
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in addIdAndBlockHashForCreateSparkSpendTransaction: " << e.what() << std::endl;
+      return false;
+   }
+}
+
+struct CreateSparkSpendTxResult {
+   std::vector< uint8_t > serialized_spend;
+   std::vector< std::vector< unsigned char > > output_scripts;
+   std::vector< CSparkMintMeta > spent_coins;
+   CAmount fee;
+};
+
+CreateSparkSpendTxResult *js_createSparkSpendTransaction( const spark::SpendKey * const spend_key,
+                                                          const spark::FullViewKey * const full_view_key,
+                                                          const spark::IncomingViewKey * const incoming_view_key,
+                                                          const std::vector< std::pair< CAmount, bool > > * const recipients,
+                                                          const std::vector< std::pair< spark::OutputCoinData, bool > > * const private_recipients,
+                                                          const std::list< CSparkMintMeta > *const coins,
+                                                          const std::unordered_map< std::uint64_t, spark::CoverSetData > * const cover_set_data_all,
+                                                          const std::map< std::uint64_t, uint256 > * const id_and_block_hashes_all,
+                                                          const char * const tx_hash_hex_string,
+                                                          const std::int32_t additional_tx_size )
+{
+   try {
+      if ( !spend_key || !full_view_key || !incoming_view_key || !recipients || !private_recipients ||
+           !coins || !cover_set_data_all || !id_and_block_hashes_all || !tx_hash_hex_string ) {
+         std::cerr << "Error calling createSparkSpendTransaction: One or more required pointers are null" << std::endl;
+         return nullptr;
+      }
+
+#if 0
+      if ( tx_hash_sig_bufsize <= 0 ) {
+         std::cerr << "Error calling createSparkSpendTransaction: tx_hash_sig_bufsize must be positive" << std::endl;
+         return nullptr;
+      }
+#endif
+
+      if ( additional_tx_size < 0 ) {
+         std::cerr << "Error calling createSparkSpendTransaction: additional_tx_size cannot be negative" << std::endl;
+         return nullptr;
+      }
+
+#if SPARK_DEBUGGING_OUTPUT
+      std::cout << "createSparkSpendTransaction called with:"
+                   "\nspend_key = " << spend_key << ' ' << spend_key->get_s1().GetHex() << ' ' << spend_key->get_s2().GetHex() << ' ' << spend_key->get_r().GetHex()
+                << "\nfull_view_key = " << full_view_key << ' ' << full_view_key->get_s1().GetHex() << ' ' << full_view_key->get_s2().GetHex()
+                                        << ' ' << full_view_key->get_D().GetHex() << ' ' << full_view_key->get_P2().GetHex()
+                << "\nincoming_view_key = " << incoming_view_key << ' ' << incoming_view_key->get_s1().GetHex() << ' ' << incoming_view_key->get_P2().GetHex()
+                << "\nrecipients = " << container_streamer( *recipients )
+                << "\nprivate_recipients = " << container_streamer( *private_recipients )
+                << "\ncoins = " << container_streamer( *coins )
+                << "\ncover_set_data_all = " << container_streamer( *cover_set_data_all )
+                << "\nid_and_block_hashes_all = " << container_streamer( *id_and_block_hashes_all )
+                << "\ntx_hash_sig = " << tx_hash_hex_string// to_hex_string( tx_hash_sig_buf, tx_hash_sig_bufsize )
+                << "\nadditional_tx_size = " << additional_tx_size << std::endl;
+#endif
+
+      auto result = std::make_unique< CreateSparkSpendTxResult >();
+      createSparkSpendTransaction( *spend_key, *full_view_key, *incoming_view_key, *recipients, *private_recipients, *coins,
+                                   *cover_set_data_all, *id_and_block_hashes_all,
+                                   uint256S( tx_hash_hex_string ), additional_tx_size,
+                                   result->fee, result->serialized_spend, result->output_scripts, result->spent_coins );
+      return result.release();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in createSparkSpendTransaction: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+const unsigned char *js_getCreateSparkSpendTxResultSerializedSpend( const CreateSparkSpendTxResult * const result )
+{
+   if ( !result ) {
+      std::cerr << "Error in getCreateSparkSpendTxResultSerializedSpend: Provided CreateSparkSpendTxResult pointer is null." << std::endl;
+      return nullptr;
+   }
+   return result->serialized_spend.data();
+}
+
+std::int32_t js_getCreateSparkSpendTxResultSerializedSpendSize( const CreateSparkSpendTxResult * const result )
+{
+   try {
+      if ( !result ) {
+         std::cerr << "Error in getCreateSparkSpendTxResultSerializedSpendSize: Provided CreateSparkSpendTxResult pointer is null." << std::endl;
+         return -1;
+      }
+      return boost::numeric_cast< std::int32_t >( result->serialized_spend.size() );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getCreateSparkSpendTxResultSerializedSpendSize: " << e.what() << std::endl;
+      return -1;
+   }
+}
+
+std::int32_t js_getCreateSparkSpendTxResultOutputScriptsSize( const CreateSparkSpendTxResult * const result )
+{
+   try {
+      if ( !result ) {
+         std::cerr << "Error in getCreateSparkSpendTxResultOutputScriptsSize: Provided CreateSparkSpendTxResult pointer is null." << std::endl;
+         return -1;
+      }
+      return boost::numeric_cast< std::int32_t >( result->output_scripts.size() );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getCreateSparkSpendTxResultOutputScriptsSize: " << e.what() << std::endl;
+      return -1;
+   }
+}
+
+const unsigned char *js_getCreateSparkSpendTxResultOutputScriptAt( const CreateSparkSpendTxResult *const result, const std::int32_t index )
+{
+   try {
+      if ( !result ) {
+         std::cerr << "Error in getCreateSparkSpendTxResultOutputScriptAt: Provided CreateSparkSpendTxResult pointer is null." << std::endl;
+         return nullptr;
+      }
+      if ( index < 0 || static_cast< std::size_t >( index ) >= result->output_scripts.size() ) {
+         std::cerr << "Error in getCreateSparkSpendTxResultOutputScriptAt: Index " << index << " is out of bounds." << std::endl;
+         return nullptr;
+      }
+      return result->output_scripts[ index ].data();
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getCreateSparkSpendTxResultOutputScriptAt: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+std::int32_t js_getCreateSparkSpendTxResultOutputScriptSizeAt( const CreateSparkSpendTxResult *const result, const std::int32_t index )
+{
+   try {
+      if ( !result ) {
+         std::cerr << "Error in getCreateSparkSpendTxResultOutputScriptSizeAt: Provided CreateSparkSpendTxResult pointer is null." << std::endl;
+         return -1;
+      }
+      if ( index < 0 || static_cast< std::size_t >( index ) >= result->output_scripts.size() ) {
+         std::cerr << "Error in getCreateSparkSpendTxResultOutputScriptSizeAt: Index " << index << " is out of bounds." << std::endl;
+         return -1;
+      }
+      return boost::numeric_cast< std::int32_t >( result->output_scripts[ index ].size() );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getCreateSparkSpendTxResultOutputScriptSizeAt: " << e.what() << std::endl;
+      return -1;
+   }
+}
+
+std::int32_t js_getCreateSparkSpendTxResultSpentCoinsSize( const CreateSparkSpendTxResult * const result )
+{
+   try {
+      if ( !result ) {
+         std::cerr << "Error in getCreateSparkSpendTxResultSpentCoinsSize: Provided CreateSparkSpendTxResult pointer is null." << std::endl;
+         return -1;
+      }
+      return boost::numeric_cast< std::int32_t >( result->spent_coins.size() );
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getCreateSparkSpendTxResultSpentCoinsSize: " << e.what() << std::endl;
+      return -1;
+   }
+}
+
+const CSparkMintMeta *js_getCreateSparkSpendTxResultSpentCoinAt( const CreateSparkSpendTxResult * const result, const std::int32_t index )
+{
+   try {
+      if ( !result ) {
+         std::cerr << "Error in getCreateSparkSpendTxResultSpentCoinAt: Provided CreateSparkSpendTxResult pointer is null." << std::endl;
+         return nullptr;
+      }
+      if ( index < 0 || static_cast< std::size_t >( index ) >= result->spent_coins.size() ) {
+         std::cerr << "Error in getCreateSparkSpendTxResultSpentCoinAt: Index " << index << " is out of bounds." << std::endl;
+         return nullptr;
+      }
+      return &result->spent_coins[ index ];
+   }
+   catch ( const std::exception &e ) {
+      std::cerr << "Error in getCreateSparkSpendTxResultSpentCoinAt: " << e.what() << std::endl;
+      return nullptr;
+   }
+}
+
+std::int64_t js_getCreateSparkSpendTxResultFee( const CreateSparkSpendTxResult * const result )
+{
+   if ( !result ) {
+      std::cerr << "Error in getCreateSparkSpendTxResultFee: Provided CreateSparkSpendTxResult pointer is null." << std::endl;
+      return -1;
+   }
+   return result->fee;
+}
+
 // Free memory allocated for SpendKeyData
 void js_freeSpendKeyData( SpendKeyData *spend_key_data )
 {
@@ -1483,6 +1987,45 @@ void js_freeIdentifiedCoinData( spark::IdentifiedCoinData *identified_coin_data 
 void js_freeCoin( spark::Coin *coin )
 {
    delete coin;
+}
+
+// Free memory allocated for recipients vector used in createSparkSpendTransaction
+void js_freeSparkSpendRecipientsVector( std::vector< std::pair< CAmount, bool > > *recipients )
+{
+   delete recipients;
+}
+
+// Free memory allocated for private recipients vector used in createSparkSpendTransaction
+void js_freeSparkSpendPrivateRecipientsVector( std::vector< std::pair< spark::OutputCoinData, bool > > *private_recipients )
+{
+   delete private_recipients;
+}
+
+// Free memory allocated for coins list used in createSparkSpendTransaction
+void js_freeSparkSpendCoinsList( std::list< CSparkMintMeta > *coins )
+{
+   delete coins;
+}
+
+void js_freeCoverSetData( spark::CoverSetData *cover_set_data )
+{
+   delete cover_set_data;
+}
+
+void js_freeCoverSetDataMapForCreateSparkSpendTransaction( std::unordered_map< std::uint64_t, spark::CoverSetData > * const cover_set_data_map )
+{
+   delete cover_set_data_map;
+}
+
+void js_freeIdAndBlockHashesMap( std::map< std::uint64_t, uint256 > * const map )
+{
+   delete map;
+}
+
+// Free memory allocated for CreateSparkSpendTxResult
+void js_freeCreateSparkSpendTxResult( CreateSparkSpendTxResult *result )
+{
+   delete result;
 }
 
 }  // extern "C"
