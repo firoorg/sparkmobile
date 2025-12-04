@@ -19,11 +19,13 @@ const uint32_t DEFAULT_SPARK_NCOUNT = 1;
 // Spend input scrypt opcode
 #define OP_SPARKSPEND 0xd3
 // Transaction type (nType)
+#define TRANSACTION_NORMAL 0
 #define TRANSACTION_SPARK 9
 // Spark spend version (nVersion)
 #define SPARK_TX_VERSION 3
 //Diversifier for spark change address,
 const uint32_t SPARK_CHANGE_D = 0x270F;
+static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 struct CRecipient
 {
