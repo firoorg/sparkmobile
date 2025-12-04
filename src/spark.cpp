@@ -295,7 +295,7 @@ void createSparkSpendTransaction(
 
     const spark::Params* params = spark::Params::get_default();
     if (spendKey == spark::SpendKey(params))
-        throw std::runtime_error("Invalid pend key.");
+        throw std::runtime_error("Invalid spend key.");
 
     CAmount spendInCurrentTx = 0;
     for (auto& spendCoin : estimated.second)
@@ -354,7 +354,7 @@ void createSparkSpendTransaction(
         uint64_t groupId = coin.nId;
         if (cover_set_data.count(groupId) == 0) {
             if (!(cover_set_data_all.count(groupId) > 0 && idAndBlockHashes_all.count(groupId) > 0 ))
-                throw std::runtime_error("No such coin in set in input data");
+                throw std::runtime_error("No such coin in set in input data: " + std::to_string(groupId));
             cover_set_data[groupId] = cover_set_data_all.at(groupId);
             idAndBlockHashes[groupId] = idAndBlockHashes_all.at(groupId);
             cover_set_data[groupId].cover_set_representation.insert(cover_set_data[groupId].cover_set_representation.end(), sig.begin(), sig.end());
