@@ -8,6 +8,7 @@
 #include <sstream>
 #include <boost/scope_exit.hpp>
 #include <boost/numeric/conversion/cast.hpp>
+#include "../bitcoin/utilstrencodings.h"
 #endif
 
 //#define SPARK_DEBUGGING_OUTPUT 1 // useful to uncomment - for building a testing module with outputs to help with troubleshooting. Make sure it is commented out in prod builds!
