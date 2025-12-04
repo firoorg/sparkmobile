@@ -10,7 +10,7 @@
 #include <boost/numeric/conversion/cast.hpp>
 #endif
 
-//#define SPARK_DEBUGGING_OUTPUT 1 // useful to uncomment - for building a testing module with outputs to help with troubleshooting. Make sure is commented out in prod builds!
+//#define SPARK_DEBUGGING_OUTPUT 1 // useful to uncomment - for building a testing module with outputs to help with troubleshooting. Make sure it is commented out in prod builds!
 
 //#include "../bitcoin/amount.h"
 //#include <iostream>
@@ -657,7 +657,8 @@ const char *js_getSpendKey_s1( const spark::SpendKey * const spend_key )
 {
     if ( !spend_key )
        return nullptr;
-    static const std::string ret = spend_key->get_s1().tostring();
+    static std::string ret;
+    ret = spend_key->get_s1().tostring();
     return ret.c_str();
 }
 
@@ -665,7 +666,8 @@ const char *js_getSpendKey_s2( const spark::SpendKey * const spend_key )
 {
     if ( !spend_key )
        return nullptr;
-    static const std::string ret = spend_key->get_s2().tostring();
+    static std::string ret;
+    ret = spend_key->get_s2().tostring();
     return ret.c_str();
 }
 
@@ -673,7 +675,8 @@ const char *js_getSpendKey_r( const spark::SpendKey * const spend_key )
 {
     if ( !spend_key )
        return nullptr;
-    static const std::string ret = spend_key->get_r().tostring();
+    static std::string ret;
+    ret = spend_key->get_r().tostring();
     return ret.c_str();
 }
 
@@ -681,7 +684,8 @@ const char *js_getSpendKey_s1_hex( const spark::SpendKey * const spend_key )
 {
     if ( !spend_key )
        return nullptr;
-    static const std::string ret = spend_key->get_s1().GetHex();
+    static std::string ret;
+    ret = spend_key->get_s1().GetHex();
     return ret.c_str();
 }
 
@@ -689,7 +693,8 @@ const char *js_getSpendKey_s2_hex( const spark::SpendKey * const spend_key )
 {
     if ( !spend_key )
        return nullptr;
-    static const std::string ret = spend_key->get_s2().GetHex();
+    static std::string ret;
+    ret = spend_key->get_s2().GetHex();
     return ret.c_str();
 }
 
@@ -697,7 +702,8 @@ const char *js_getSpendKey_r_hex( const spark::SpendKey * const spend_key )
 {
     if ( !spend_key )
        return nullptr;
-    static const std::string ret = spend_key->get_r().GetHex();
+    static std::string ret;
+    ret = spend_key->get_r().GetHex();
     return ret.c_str();
 }
 
@@ -761,7 +767,8 @@ const char *js_encodeAddress( const spark::Address * const address, const std::i
          std::cerr << "Error calling encodeAddress: Provided Address is null." << std::endl;
          return nullptr;
       }
-      static const std::string encoded = address->encode( is_test_net ? spark::ADDRESS_NETWORK_TESTNET : spark::ADDRESS_NETWORK_MAINNET );
+      static std::string encoded;
+      encoded = address->encode( is_test_net ? spark::ADDRESS_NETWORK_TESTNET : spark::ADDRESS_NETWORK_MAINNET );
       return encoded.c_str();
    }
    catch ( const std::exception &e ) {
