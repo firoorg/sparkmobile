@@ -1,5 +1,67 @@
 #include "spend_transaction.h"
 
+#include <iostream>
+template < class C >
+struct container_streamer {
+   explicit container_streamer( const C &c ) : c_( c ) {}
+
+   friend std::ostream &operator<<( std::ostream &os, const container_streamer &s )
+   {
+      // if size > 40, printing just first & last 20, otherwise all of the elements
+      const auto count = s.c_.size();
+      if ( count == 0 )
+         return os << "[]";
+      const bool too_large = count > 40;
+      os << '[' << count << "| ";
+      bool first = true;
+#if __cplusplus >= 202002L  // TODO
+      for ( const auto &e : s.c_ | std::views::take( too_large ? 20 : count ) ) {
+#else
+      auto n = too_large ? 20 : count;
+      for ( auto it = s.c_.cbegin(); n; --n, ++it ) {
+         const auto &e = *it;
+#endif
+         if ( !first ) {
+            os << ", ";
+            first = false;
+         }
+         os << e;
+      }
+      if ( too_large ) {
+         os << ", ...";
+#if __cplusplus >= 202002L  // TODO
+         for ( const auto &e : s.c_ | std::views::drop( count - 20 ) ) {
+#else
+         for ( auto it = std::prev( s.c_.cend(), 20 ); it != s.c_.end(); ++it ) {
+            const auto &e = *it;
+#endif
+            os << ", " << e;
+         }
+      }
+      return os << " ]";
+   }
+
+private:
+   const C &c_;
+};
+
+   std::string to_hex_string( const unsigned char * const data, const size_t len );
+
+namespace std {
+std::ostream& operator<<(std::ostream& os, const std::vector<unsigned char>& v)
+{
+   return os << to_hex_string(v.data(), v.size());
+}
+}
+
+namespace std {
+template < typename  F, typename S >
+std::ostream &operator<<( std::ostream &os, const std::pair< F, S > &p )
+{
+   return os << p.first << " -> " << p.second;
+}
+}
+
 namespace spark {
 
 // Generate a spend transaction that consumes existing coins and generates new ones
@@ -175,19 +237,22 @@ SpendTransaction::SpendTransaction(
 	);
 
 	// Compute the binding hash
+   const auto hbi = hash_bind_inner(
+         this->cover_set_representations,
+         this->S1,
+         this->C1,
+         this->T,
+         this->grootle_proofs,
+         this->balance_proof,
+         this->range_proof
+      );
 	Scalar mu = hash_bind(
-		hash_bind_inner(
-			this->cover_set_representations,
-			this->S1,
-			this->C1,
-			this->T,
-			this->grootle_proofs,
-			this->balance_proof,
-			this->range_proof
-		),
+		hbi,
 		this->out_coins,
 		this->f + vout
 	);
+   std::cout << "hash_bind_inner: " << to_hex_string(hbi.data(), hbi.size()) << " mu: " << mu << std::endl;
+   std::cout << "cover_set_representations: " << container_streamer(this->cover_set_representations) << std::endl;
 
 	// Compute the authorizing Chaum proof
 	Chaum chaum(

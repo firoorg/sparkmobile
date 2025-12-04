@@ -1064,7 +1064,7 @@ static spark::IncomingViewKey deserializeIncomingViewKey( const unsigned char * 
 
 #ifdef __EMSCRIPTEN__
 
-static std::string to_hex_string( const unsigned char * const data, const size_t len )
+/*TODO static*/ std::string to_hex_string( const unsigned char * const data, const size_t len )
 {
    std::ostringstream ss;
    ss << std::hex << std::setfill( '0' );
