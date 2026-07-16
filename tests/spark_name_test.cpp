@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(spark_names)
     BOOST_CHECK_EQUAL(decodedData.sparkAddress, sparkNameData.sparkAddress);
     BOOST_CHECK_EQUAL(decodedData.sparkNameValidityBlocks, sparkNameData.sparkNameValidityBlocks);
     BOOST_CHECK_EQUAL(decodedData.additionalInfo, sparkNameData.additionalInfo);
-    BOOST_CHECK_EQUAL(decodedData.nVersion, spark::CSparkNameTxData::CURRENT_VERSION);
+    BOOST_CHECK_EQUAL(decodedData.nVersion, uint16_t{2});
     BOOST_CHECK_EQUAL((int)decodedData.operationType, 0);
     BOOST_CHECK(!decodedData.addressOwnershipProof.empty());
 
