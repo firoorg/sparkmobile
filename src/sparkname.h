@@ -36,6 +36,8 @@ public:
     void SerializationOp(Stream &s, Operation ser_action)
     {
         READWRITE(nVersion);
+        if (nVersion != 1 && nVersion != 2)
+            throw std::ios_base::failure("Unsupported Spark Name transaction data version");
         READWRITE(inputsHash);
         READWRITE(name);
         READWRITE(sparkAddress);
@@ -43,7 +45,7 @@ public:
         READWRITE(sparkNameValidityBlocks);
         READWRITE(additionalInfo);
         READWRITE(hashFailsafe);
-        if (nVersion >= 2)
+        if (nVersion == 2)
         {
             READWRITE(operationType);
         }

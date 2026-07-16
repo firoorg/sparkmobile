@@ -56,4 +56,17 @@ BOOST_AUTO_TEST_CASE(spark_names)
     BOOST_CHECK(address.verify_own(m, deserializedOwnershipProof));
 }
 
+BOOST_AUTO_TEST_CASE(rejects_unsupported_spark_name_versions)
+{
+    spark::CSparkNameTxData data;
+    data.nVersion = 3;
+    CDataStream serialized(SER_NETWORK, PROTOCOL_VERSION);
+    BOOST_CHECK_THROW(serialized << data, std::ios_base::failure);
+
+    uint16_t unsupportedVersion = 3;
+    CDataStream encodedVersion(SER_NETWORK, PROTOCOL_VERSION);
+    encodedVersion << unsupportedVersion;
+    BOOST_CHECK_THROW(encodedVersion >> data, std::ios_base::failure);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
