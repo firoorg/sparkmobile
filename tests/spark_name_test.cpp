@@ -63,10 +63,12 @@ BOOST_AUTO_TEST_CASE(rejects_unsupported_spark_name_versions)
     CDataStream serialized(SER_NETWORK, PROTOCOL_VERSION);
     BOOST_CHECK_THROW(serialized << data, std::ios_base::failure);
 
-    uint16_t unsupportedVersion = 3;
-    CDataStream encodedVersion(SER_NETWORK, PROTOCOL_VERSION);
-    encodedVersion << unsupportedVersion;
-    BOOST_CHECK_THROW(encodedVersion >> data, std::ios_base::failure);
+    data.nVersion = 2;
+    CDataStream encodedData(SER_NETWORK, PROTOCOL_VERSION);
+    encodedData << data;
+    encodedData[0] = 3;
+    encodedData[1] = 0;
+    BOOST_CHECK_THROW(encodedData >> data, std::ios_base::failure);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
