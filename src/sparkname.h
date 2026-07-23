@@ -48,6 +48,8 @@ public:
         if (nVersion == 2)
         {
             READWRITE(operationType);
+            if (operationType != 0)
+                throw std::ios_base::failure("Unsupported Spark Name operation type");
         }
     }
 };
