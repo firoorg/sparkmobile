@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(rejects_unsupported_spark_name_data)
     data.operationType = 0;
     CDataStream encodedOperation(SER_NETWORK, PROTOCOL_VERSION);
     encodedOperation << data;
-    encodedOperation.back() = 1;
+    encodedOperation[encodedOperation.size() - 1] = 1;
     BOOST_CHECK_THROW(encodedOperation >> data, std::ios_base::failure);
 }
 
