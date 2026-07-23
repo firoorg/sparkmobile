@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(spark_names)
     BOOST_CHECK(address.verify_own(m, deserializedOwnershipProof));
 }
 
-BOOST_AUTO_TEST_CASE(rejects_unsupported_spark_name_versions)
+BOOST_AUTO_TEST_CASE(rejects_unsupported_spark_name_data)
 {
     spark::CSparkNameTxData data;
     data.nVersion = 3;
@@ -69,6 +69,17 @@ BOOST_AUTO_TEST_CASE(rejects_unsupported_spark_name_versions)
     encodedData[0] = 3;
     encodedData[1] = 0;
     BOOST_CHECK_THROW(encodedData >> data, std::ios_base::failure);
+
+    data.nVersion = 2;
+    data.operationType = 1;
+    CDataStream unsupportedOperation(SER_NETWORK, PROTOCOL_VERSION);
+    BOOST_CHECK_THROW(unsupportedOperation << data, std::ios_base::failure);
+
+    data.operationType = 0;
+    CDataStream encodedOperation(SER_NETWORK, PROTOCOL_VERSION);
+    encodedOperation << data;
+    encodedOperation.back() = 1;
+    BOOST_CHECK_THROW(encodedOperation >> data, std::ios_base::failure);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
