@@ -42,6 +42,8 @@ BOOST_AUTO_TEST_CASE(spark_names)
     BOOST_CHECK_EQUAL(decodedData.sparkAddress, sparkNameData.sparkAddress);
     BOOST_CHECK_EQUAL(decodedData.sparkNameValidityBlocks, sparkNameData.sparkNameValidityBlocks);
     BOOST_CHECK_EQUAL(decodedData.additionalInfo, sparkNameData.additionalInfo);
+    BOOST_CHECK_EQUAL(decodedData.nVersion, uint16_t{2});
+    BOOST_CHECK_EQUAL((int)decodedData.operationType, 0);
     BOOST_CHECK(!decodedData.addressOwnershipProof.empty());
 
     spark::OwnershipProof deserializedOwnershipProof;
@@ -52,6 +54,32 @@ BOOST_AUTO_TEST_CASE(spark_names)
     address.decode(decodedData.sparkAddress);
 
     BOOST_CHECK(address.verify_own(m, deserializedOwnershipProof));
+}
+
+BOOST_AUTO_TEST_CASE(rejects_unsupported_spark_name_data)
+{
+    spark::CSparkNameTxData data;
+    data.nVersion = 3;
+    CDataStream serialized(SER_NETWORK, PROTOCOL_VERSION);
+    BOOST_CHECK_THROW(serialized << data, std::ios_base::failure);
+
+    data.nVersion = 2;
+    CDataStream encodedData(SER_NETWORK, PROTOCOL_VERSION);
+    encodedData << data;
+    encodedData[0] = 3;
+    encodedData[1] = 0;
+    BOOST_CHECK_THROW(encodedData >> data, std::ios_base::failure);
+
+    data.nVersion = 2;
+    data.operationType = 1;
+    CDataStream unsupportedOperation(SER_NETWORK, PROTOCOL_VERSION);
+    BOOST_CHECK_THROW(unsupportedOperation << data, std::ios_base::failure);
+
+    data.operationType = 0;
+    CDataStream encodedOperation(SER_NETWORK, PROTOCOL_VERSION);
+    encodedOperation << data;
+    encodedOperation[encodedOperation.size() - 1] = 1;
+    BOOST_CHECK_THROW(encodedOperation >> data, std::ios_base::failure);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

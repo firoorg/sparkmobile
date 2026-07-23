@@ -9,7 +9,7 @@ namespace spark {
 struct CSparkNameTxData
 {
 public:
-    static const uint16_t CURRENT_VERSION = 1;
+    static const uint16_t CURRENT_VERSION = 2;
 
 public:
     uint16_t nVersion{CURRENT_VERSION};     // version
@@ -27,6 +27,8 @@ public:
     std::string additionalInfo;
     // failsafe if the hash of the transaction data is can't be converted to a scalar for proof creation/verification
     uint32_t hashFailsafe{0};
+    // Registration-only; add transfer fields if mobile starts creating Spark Name transfers.
+    uint8_t operationType{0};
 
     ADD_SERIALIZE_METHODS;
 
@@ -34,6 +36,8 @@ public:
     void SerializationOp(Stream &s, Operation ser_action)
     {
         READWRITE(nVersion);
+        if (nVersion != 1 && nVersion != 2)
+            throw std::ios_base::failure("Unsupported Spark Name transaction data version");
         READWRITE(inputsHash);
         READWRITE(name);
         READWRITE(sparkAddress);
@@ -41,6 +45,12 @@ public:
         READWRITE(sparkNameValidityBlocks);
         READWRITE(additionalInfo);
         READWRITE(hashFailsafe);
+        if (nVersion == 2)
+        {
+            READWRITE(operationType);
+            if (operationType != 0)
+                throw std::ios_base::failure("Unsupported Spark Name operation type");
+        }
     }
 };
 
