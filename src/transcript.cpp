@@ -95,6 +95,17 @@ void Transcript::add(const std::string label, const std::vector<unsigned char>& 
     include_data(data);
 }
 
+void Transcript::add(
+        const std::string label,
+        const std::vector<std::vector<unsigned char>>& data) {
+    include_flag(FLAG_VECTOR);
+    size(data.size());
+    include_label(label);
+    for (const auto& value : data) {
+        include_data(value);
+    }
+}
+
 // Produce a challenge
 Scalar Transcript::challenge(const std::string label) {
     // Ensure we can properly populate a scalar
