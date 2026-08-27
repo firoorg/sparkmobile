@@ -1,13 +1,15 @@
-#include "sparkname.h"
+#include "../include/spark.h"
 #include "../bitcoin/hash.h"
 
 void GetSparkNameScript(spark::CSparkNameTxData& sparkNameData,
-                        Scalar m,
+                        const uint256& ownershipDigest,
+                        spark::SpendTransactionVersion version,
                         const spark::SpendKey& spendKey,
                         const spark::IncomingViewKey& incomingViewKey,
                         std::vector<unsigned char>& outputScript)
 {
     outputScript.clear();
+    const Scalar m = getSparkNameOwnershipMessage(ownershipDigest, version);
 
     spark::Address sparkAddress(spark::Params::get_default());
     spark::OwnershipProof ownershipProof;

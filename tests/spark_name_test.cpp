@@ -32,10 +32,19 @@ BOOST_AUTO_TEST_CASE(spark_names)
     sparkNameData.additionalInfo = "additional info";
 
     const uint256 digest = uint256S("01");
-    const Scalar m = getSparkNameOwnershipMessage(
-        digest, spark::SpendTransactionVersion::V2);
+    CHashWriter ownershipHash(SER_GETHASH, PROTOCOL_VERSION);
+    ownershipHash << std::string("SparkNameOwnershipMessageV2") << digest;
+    uint256 seed = ownershipHash.GetHash();
+    Scalar v2Message;
+    v2Message.memberFromSeed(seed.begin());
 
-    BOOST_CHECK_NO_THROW(GetSparkNameScript(sparkNameData, m, spend_key, incoming_view_key, outputScript));
+    BOOST_CHECK_NO_THROW(GetSparkNameScript(
+        sparkNameData,
+        digest,
+        spark::SpendTransactionVersion::V2,
+        spend_key,
+        incoming_view_key,
+        outputScript));
 
     BOOST_CHECK(!outputScript.empty());
 
@@ -58,7 +67,35 @@ BOOST_AUTO_TEST_CASE(spark_names)
     spark::Address address(spark::Params::get_default());
     address.decode(decodedData.sparkAddress);
 
-    BOOST_CHECK(address.verify_own(m, deserializedOwnershipProof));
+    BOOST_CHECK(address.verify_own(v2Message, deserializedOwnershipProof));
+
+    BOOST_CHECK_NO_THROW(GetSparkNameScript(
+        sparkNameData,
+        digest,
+        spark::SpendTransactionVersion::V1,
+        spend_key,
+        incoming_view_key,
+        outputScript));
+    CDataStream v1Stream(outputScript, SER_NETWORK, PROTOCOL_VERSION);
+    v1Stream >> decodedData;
+    CDataStream v1ProofStream(
+        decodedData.addressOwnershipProof, SER_NETWORK, PROTOCOL_VERSION);
+    v1ProofStream >> deserializedOwnershipProof;
+    Scalar v1Message;
+    v1Message.SetHex(digest.ToString());
+    BOOST_CHECK(address.verify_own(v1Message, deserializedOwnershipProof));
+
+    outputScript = {1};
+    BOOST_CHECK_THROW(
+        GetSparkNameScript(
+            sparkNameData,
+            digest,
+            static_cast<spark::SpendTransactionVersion>(3),
+            spend_key,
+            incoming_view_key,
+            outputScript),
+        std::invalid_argument);
+    BOOST_CHECK(outputScript.empty());
 }
 
 BOOST_AUTO_TEST_CASE(spark_name_v2_binding_helpers)
