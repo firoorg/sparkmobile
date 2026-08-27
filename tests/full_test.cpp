@@ -81,7 +81,145 @@ BOOST_AUTO_TEST_CASE(generate_verify)
     std::vector<spark::OutputCoinData> privOutputs{{address, uint64_t(100), "memo"}};
     std::vector<uint8_t> inputScript;
     std::vector<std::vector<unsigned char>> outputScripts;
-    BOOST_CHECK_NO_THROW(getSparkSpendScripts(full_view_key, spend_key, inputs, cover_set_data, idAndBlockHashes, uint64_t(1), uint64_t(99), privOutputs, inputScript, outputScripts));
+    BOOST_CHECK_NO_THROW(getSparkSpendScripts(
+        full_view_key,
+        spend_key,
+        inputs,
+        cover_set_data,
+        idAndBlockHashes,
+        uint64_t(1),
+        uint64_t(99),
+        privOutputs,
+        SpendTransactionVersion::V1,
+        uint256(),
+        inputScript,
+        outputScripts));
+}
+
+BOOST_AUTO_TEST_CASE(spark_v2_builder)
+{
+    auto* params = spark::Params::get_default();
+    Scalar r;
+    r.randomize();
+    SpendKey spend_key(params, r);
+    FullViewKey full_view_key(spend_key);
+    IncomingViewKey incoming_view_key(full_view_key);
+    Address address(incoming_view_key, uint64_t(1));
+
+    std::vector<MintedCoinData> minted{
+        {address, uint64_t(4000), "memo"},
+        {address, uint64_t(5000), "memo"}};
+    std::vector<CRecipient> mintRecipients =
+        createSparkMintRecipients(minted, {}, true);
+    std::vector<CScript> mintScripts{
+        mintRecipients[0].pubKey,
+        mintRecipients[1].pubKey};
+    MintTransaction mintTransaction(params);
+    ParseSparkMintTransaction(mintScripts, mintTransaction);
+
+    std::vector<Coin> coins;
+    mintTransaction.getCoins(coins);
+    std::list<CSparkMintMeta> inputCoins;
+    for (const Coin& coin : coins) {
+        CSparkMintMeta meta = getMetadata(coin, incoming_view_key);
+        meta.nId = 1;
+        inputCoins.push_back(meta);
+    }
+
+    const auto v1Estimate = SelectSparkCoins(
+        7000, true, inputCoins, 0, 1, 0, SpendTransactionVersion::V1);
+    const auto v2Estimate = SelectSparkCoins(
+        7000, true, inputCoins, 0, 1, 0, SpendTransactionVersion::V2);
+    BOOST_CHECK_EQUAL(v1Estimate.second.size(), 2);
+    BOOST_CHECK_EQUAL(v2Estimate.second.size(), 2);
+    BOOST_CHECK_EQUAL(v2Estimate.first - v1Estimate.first, 32 + 98);
+
+    std::vector<std::pair<CAmount, bool>> recipients{{7000, true}};
+    std::vector<std::pair<OutputCoinData, bool>> privateRecipients;
+    std::unordered_map<uint64_t, CoverSetData> coverSetData;
+    coverSetData[1] = {coins, std::vector<unsigned char>(uint256().size(), 0x11)};
+    std::map<uint64_t, uint256> blockHashes{{1, uint256S("02")}};
+    const uint256 txHash = uint256S("03");
+    const uint256 extensionCommitment = uint256S("04");
+    CAmount fee = 0;
+    std::vector<uint8_t> serializedSpend;
+    std::vector<std::vector<unsigned char>> outputScripts;
+    std::vector<CSparkMintMeta> spentCoins;
+
+    BOOST_CHECK_THROW(
+        createSparkSpendTransaction(
+            spend_key,
+            full_view_key,
+            incoming_view_key,
+            recipients,
+            privateRecipients,
+            inputCoins,
+            coverSetData,
+            blockHashes,
+            txHash,
+            0,
+            SpendTransactionVersion::V1,
+            uint256(),
+            fee,
+            serializedSpend,
+            outputScripts,
+            spentCoins),
+        std::invalid_argument);
+
+    BOOST_CHECK_NO_THROW(createSparkSpendTransaction(
+        spend_key,
+        full_view_key,
+        incoming_view_key,
+        recipients,
+        privateRecipients,
+        inputCoins,
+        coverSetData,
+        blockHashes,
+        txHash,
+        0,
+        SpendTransactionVersion::V2,
+        extensionCommitment,
+        fee,
+        serializedSpend,
+        outputScripts,
+        spentCoins));
+
+    BOOST_REQUIRE(!serializedSpend.empty());
+    BOOST_CHECK_EQUAL(serializedSpend.front(), uint8_t{2});
+    BOOST_CHECK_EQUAL(spentCoins.size(), 2);
+
+    CDataStream serialized(serializedSpend, SER_NETWORK, PROTOCOL_VERSION);
+    SpendTransaction spend(
+        params,
+        SpendTransactionVersion::V2,
+        outputScripts.size());
+    BOOST_CHECK_NO_THROW(serialized >> spend);
+    BOOST_CHECK(serialized.empty());
+    BOOST_CHECK(spend.getVersion() == SpendTransactionVersion::V2);
+    BOOST_CHECK(spend.getExtensionCommitment() == extensionCommitment);
+
+    std::vector<Coin> outCoins;
+    for (const auto& script : outputScripts) {
+        BOOST_REQUIRE(!script.empty());
+        BOOST_CHECK_EQUAL(script.front(), OP_SPARKSMINT);
+        CDataStream coinStream(
+            std::vector<unsigned char>(script.begin() + 1, script.end()),
+            SER_NETWORK,
+            PROTOCOL_VERSION);
+        Coin coin(params);
+        coinStream >> coin;
+        BOOST_CHECK(coinStream.empty());
+        outCoins.push_back(coin);
+    }
+    spend.setOutCoins(outCoins);
+    coverSetData[1].cover_set_representation.insert(
+        coverSetData[1].cover_set_representation.end(),
+        txHash.begin(),
+        txHash.end());
+    spend.setCoverSets(coverSetData);
+    spend.setVout(7000 - fee);
+    std::unordered_map<uint64_t, std::vector<Coin>> coverSets{{1, coins}};
+    BOOST_CHECK(SpendTransaction::verify(spend, coverSets));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

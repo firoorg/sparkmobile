@@ -1,4 +1,5 @@
 #!/bin/bash                                                                                    
+set -e
 
 if [ -z "$1" ];then
   echo "Please supply a name for the directory to hold the execuatables"
@@ -12,6 +13,8 @@ fi
 
 echo Running Spark Tests
 ./$1/spark_tests
+echo Running Spark Name Tests
+./$1/spark_name_tests
 echo Running Address Tests
 ./$1/address_tests
 echo Running Ownership Tests

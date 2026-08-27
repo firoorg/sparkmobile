@@ -8,7 +8,14 @@
 #include "../src/spend_transaction.h"
 #include <list>
 
-std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(CAmount required, bool subtractFeeFromAmount, std::list<CSparkMintMeta> coins, std::size_t mintNum, std::size_t utxoNum, std::size_t additionalTxSize);
+std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(
+        CAmount required,
+        bool subtractFeeFromAmount,
+        std::list<CSparkMintMeta> coins,
+        std::size_t mintNum,
+        std::size_t utxoNum,
+        std::size_t additionalTxSize,
+        spark::SpendTransactionVersion version);
 
 bool GetCoinsToSpend(
         CAmount required,
@@ -25,6 +32,8 @@ void getSparkSpendScripts(const spark::FullViewKey& fullViewKey,
                           CAmount fee,
                           uint64_t transparentOut,
                           const std::vector<spark::OutputCoinData>& privOutputs,
+                          spark::SpendTransactionVersion version,
+                          const uint256& extensionCommitment,
                           std::vector<uint8_t>& inputScript, std::vector<std::vector<unsigned char>>& outputScripts);
 
 

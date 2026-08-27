@@ -20,6 +20,7 @@ const uint32_t DEFAULT_SPARK_NCOUNT = 1;
 #define OP_SPARKSPEND 0xd3
 // Transaction type (nType)
 #define TRANSACTION_SPARK 9
+#define TRANSACTION_SPARK_V2 11
 // Spark spend version (nVersion)
 #define SPARK_TX_VERSION 3
 //Diversifier for spark change address,
@@ -74,6 +75,8 @@ void createSparkSpendTransaction(
         const std::map<uint64_t, uint256>& idAndBlockHashes_all,
         const uint256& txHashSig,
         std::size_t additionalTxSize,
+        spark::SpendTransactionVersion version,
+        const uint256& extensionCommitment,
         CAmount &fee,
         std::vector<uint8_t>& serializedSpend,
         std::vector<std::vector<unsigned char>>& outputScripts,
@@ -86,5 +89,9 @@ void GetSparkNameScript(spark::CSparkNameTxData &sparkNameData,
     std::vector<unsigned char>& outputScript);
 
 size_t getSparkNameTxDataSize(const spark::CSparkNameTxData &sparkNameData);
+uint256 getSparkNameCommitment(const spark::CSparkNameTxData &sparkNameData);
+Scalar getSparkNameOwnershipMessage(
+    const uint256& digest,
+    spark::SpendTransactionVersion version);
 
 #endif // SPARK_H

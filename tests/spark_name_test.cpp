@@ -1,5 +1,6 @@
 #include "../src/sparkname.h"
 #include "../include/spark.h"
+#include "../bitcoin/hash.h"
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
@@ -15,10 +16,10 @@ BOOST_AUTO_TEST_CASE(spark_names)
 {
     auto* params = spark::Params::get_default();
 
-    Scalar m;
-    m.randomize();
+    Scalar r;
+    r.randomize();
 
-    spark::SpendKey spend_key(params, m);
+    spark::SpendKey spend_key(params, r);
     spark::FullViewKey full_view_key(spend_key);
     spark::IncomingViewKey incoming_view_key(full_view_key);
 
@@ -29,6 +30,10 @@ BOOST_AUTO_TEST_CASE(spark_names)
     sparkNameData.sparkAddress = getAddress(incoming_view_key, 1234).encode(spark::ADDRESS_NETWORK_TESTNET);
     sparkNameData.sparkNameValidityBlocks = 2;
     sparkNameData.additionalInfo = "additional info";
+
+    const uint256 digest = uint256S("01");
+    const Scalar m = getSparkNameOwnershipMessage(
+        digest, spark::SpendTransactionVersion::V2);
 
     BOOST_CHECK_NO_THROW(GetSparkNameScript(sparkNameData, m, spend_key, incoming_view_key, outputScript));
 
@@ -54,6 +59,43 @@ BOOST_AUTO_TEST_CASE(spark_names)
     address.decode(decodedData.sparkAddress);
 
     BOOST_CHECK(address.verify_own(m, deserializedOwnershipProof));
+}
+
+BOOST_AUTO_TEST_CASE(spark_name_v2_binding_helpers)
+{
+    spark::CSparkNameTxData data;
+    data.inputsHash = uint256S("10");
+    data.name = "TestName";
+    data.sparkAddress = "test-address";
+    data.addressOwnershipProof = {1, 2, 3};
+    data.sparkNameValidityBlocks = 2;
+    data.additionalInfo = "additional info";
+
+    spark::CSparkNameTxData committed = data;
+    committed.addressOwnershipProof.clear();
+    CHashWriter commitmentHash(SER_GETHASH, PROTOCOL_VERSION);
+    commitmentHash << std::string("FiroSparkNameExtensionV1") << committed;
+    const uint256 commitment = getSparkNameCommitment(data);
+    BOOST_CHECK(commitment == commitmentHash.GetHash());
+
+    data.addressOwnershipProof = {4, 5, 6};
+    BOOST_CHECK(getSparkNameCommitment(data) == commitment);
+
+    const uint256 digest = uint256S("20");
+    CHashWriter ownershipHash(SER_GETHASH, PROTOCOL_VERSION);
+    ownershipHash << std::string("SparkNameOwnershipMessageV2") << digest;
+    uint256 seed = ownershipHash.GetHash();
+    Scalar expectedV2;
+    expectedV2.memberFromSeed(seed.begin());
+    BOOST_CHECK(
+        getSparkNameOwnershipMessage(
+            digest, spark::SpendTransactionVersion::V2) == expectedV2);
+
+    Scalar expectedV1;
+    expectedV1.SetHex(digest.ToString());
+    BOOST_CHECK(
+        getSparkNameOwnershipMessage(
+            digest, spark::SpendTransactionVersion::V1) == expectedV1);
 }
 
 BOOST_AUTO_TEST_CASE(rejects_unsupported_spark_name_data)
