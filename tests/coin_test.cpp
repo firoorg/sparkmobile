@@ -119,6 +119,48 @@ BOOST_AUTO_TEST_CASE(spend_identify_recover)
     );
     BOOST_CHECK_EQUAL(r_data.T*r_data.s + full_view_key.get_D(), params->get_U());
 }
+
+BOOST_AUTO_TEST_CASE(rejects_short_recipient_memo_payloads)
+{
+    const Params* params = Params::get_default();
+    SpendKey spend_key(params);
+    FullViewKey full_view_key(spend_key);
+    IncomingViewKey incoming_view_key(full_view_key);
+    Address address(incoming_view_key, 12345);
+    Scalar k;
+    k.randomize();
+    const std::vector<unsigned char> serial_context = random_char_vector();
+
+    const auto replace_recipient_data = [&address, &k](
+            Coin& coin,
+            auto recipient_data,
+            const std::string& label) {
+        recipient_data.padded_memo.assign(1, '\0');
+        CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+        stream << recipient_data;
+        stream.resize(coin.r_.ciphertext.size());
+        coin.r_ = AEAD::encrypt(
+            address.get_Q1()*SparkUtils::hash_k(k), label, stream);
+    };
+
+    Coin mint(
+        params, COIN_TYPE_MINT, k, address, 86, "", serial_context);
+    MintCoinRecipientData mint_data;
+    mint_data.d = address.get_d();
+    mint_data.k = k;
+    replace_recipient_data(mint, mint_data, "Mint coin data");
+    BOOST_CHECK_THROW(mint.identify(incoming_view_key), std::runtime_error);
+
+    Coin spend(
+        params, COIN_TYPE_SPEND, k, address, 86, "", serial_context);
+    SpendCoinRecipientData spend_data;
+    spend_data.v = 86;
+    spend_data.d = address.get_d();
+    spend_data.k = k;
+    replace_recipient_data(spend, spend_data, "Spend coin data");
+    BOOST_CHECK_THROW(spend.identify(incoming_view_key), std::runtime_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }
