@@ -1,5 +1,6 @@
 #include "keys.h"
 #include "../bitcoin/hash.h"
+#include "../bitcoin/support/cleanse.h"
 #include "transcript.h"
 
 namespace spark {
@@ -16,28 +17,28 @@ SpendKey::SpendKey(const Params* params) {
 SpendKey::SpendKey(const Params* params, const Scalar& r_) {
     this->params = params;
     this->r = r_;
-    std::vector<unsigned char> data;
-    data.resize(32);
+    std::vector<unsigned char> data(32);
     r.serialize(data.data());
-    std::vector<unsigned char> result(CSHA256().OUTPUT_SIZE);
+    std::vector<unsigned char> result(CSHA256::OUTPUT_SIZE);
 
     CHash256 hash256;
     std::string prefix1 = "s1_generation";
     hash256.Write(reinterpret_cast<const unsigned char*>(prefix1.c_str()), prefix1.size());
     hash256.Write(data.data(), data.size());
-    hash256.Finalize(&result[0]);
-    this->s1.memberFromSeed(&result[0]);
+    hash256.Finalize(result.data());
+    this->s1.memberFromSeed(result.data());
 
-    data.clear();
-    result = std::vector<unsigned char>(CSHA256().OUTPUT_SIZE);
     hash256.Reset();
-    s1.serialize(data.data());
 
+    // The deployed s2 seed commits only to this prefix. The historical code
+    // cleared its buffer here, so adding s1 now would change existing keys.
     std::string prefix2 = "s2_generation";
     hash256.Write(reinterpret_cast<const unsigned char*>(prefix2.c_str()), prefix2.size());
-    hash256.Write(data.data(), data.size());
-    hash256.Finalize(&result[0]);
-    this->s2.memberFromSeed(&result[0]);
+    hash256.Finalize(result.data());
+    this->s2.memberFromSeed(result.data());
+
+    memory_cleanse(data.data(), data.size());
+    memory_cleanse(result.data(), result.size());
 }
 
 const Params* SpendKey::get_params() const {

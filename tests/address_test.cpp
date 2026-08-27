@@ -1,4 +1,5 @@
 #include "../src/keys.h"
+#include "../bitcoin/hash.h"
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
@@ -13,6 +14,41 @@ using namespace secp_primitives;
 class SparkTest {};
 
 BOOST_FIXTURE_TEST_SUITE(spark_address_tests, SparkTest)
+
+BOOST_AUTO_TEST_CASE(spend_key_derivation)
+{
+    const Params* params = Params::get_test();
+    Scalar r1(uint64_t(1));
+    Scalar r2(uint64_t(2));
+    const SpendKey key1(params, r1);
+    const SpendKey key1Again(params, r1);
+    const SpendKey key2(params, r2);
+
+    BOOST_CHECK(key1.get_s1() == key1Again.get_s1());
+    BOOST_CHECK(key1.get_s2() == key1Again.get_s2());
+    BOOST_CHECK(key1.get_s1() != key2.get_s1());
+    BOOST_CHECK(key1.get_s2() == key2.get_s2());
+
+    unsigned char seed[CSHA256::OUTPUT_SIZE];
+    std::vector<unsigned char> serializedR(32);
+    r1.serialize(serializedR.data());
+    CHash256 hasher;
+    const std::string prefix1 = "s1_generation";
+    hasher.Write(reinterpret_cast<const unsigned char*>(prefix1.data()), prefix1.size());
+    hasher.Write(serializedR.data(), serializedR.size());
+    hasher.Finalize(seed);
+    Scalar expectedS1;
+    expectedS1.memberFromSeed(seed);
+    BOOST_CHECK(key1.get_s1() == expectedS1);
+
+    hasher.Reset();
+    const std::string prefix2 = "s2_generation";
+    hasher.Write(reinterpret_cast<const unsigned char*>(prefix2.data()), prefix2.size());
+    hasher.Finalize(seed);
+    Scalar expectedS2;
+    expectedS2.memberFromSeed(seed);
+    BOOST_CHECK(key1.get_s2() == expectedS2);
+}
 
 // Check that correct encoding and decoding succeed
 BOOST_AUTO_TEST_CASE(correctness)
