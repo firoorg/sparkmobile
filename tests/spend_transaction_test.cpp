@@ -222,6 +222,36 @@ BOOST_AUTO_TEST_CASE(versioned_generate_verify_and_serialization)
     BOOST_REQUIRE(!encodedV2.empty());
     BOOST_CHECK_EQUAL(static_cast<unsigned char>(encodedV2[0]), 2U);
 
+    const std::size_t idsOffset = 1 + GetSizeOfCompactSize(w) +
+        GetSizeOfCompactSize(t);
+    const std::size_t mapOffset = idsOffset + w * sizeof(uint64_t) +
+        GetSizeOfCompactSize(blockHashes.size());
+    const std::size_t mapEntrySize = sizeof(uint64_t) + uint256().size();
+    BOOST_REQUIRE(originalV2.size() >= mapOffset + 2 * mapEntrySize);
+    const auto checkInvalidGroupId = [&](std::vector<unsigned char> bytes) {
+        CDataStream invalid(bytes, SER_NETWORK, PROTOCOL_VERSION);
+        SpendTransaction parser(
+            params, SpendTransactionVersion::V2, out_coin_data.size());
+        BOOST_CHECK_THROW(invalid >> parser, std::ios_base::failure);
+    };
+
+    auto zeroGroupId = originalV2;
+    WriteLE64(zeroGroupId.data() + idsOffset, 0);
+    WriteLE64(zeroGroupId.data() + idsOffset + 2 * sizeof(uint64_t), 0);
+    WriteLE64(zeroGroupId.data() + mapOffset, 0);
+    checkInvalidGroupId(zeroGroupId);
+
+    const uint64_t oversizedGroupId =
+        static_cast<uint64_t>(std::numeric_limits<int32_t>::max()) + 1;
+    auto oversizedGroup = originalV2;
+    WriteLE64(
+        oversizedGroup.data() + idsOffset + sizeof(uint64_t),
+        oversizedGroupId);
+    WriteLE64(
+        oversizedGroup.data() + mapOffset + mapEntrySize,
+        oversizedGroupId);
+    checkInvalidGroupId(oversizedGroup);
+
     SpendTransaction decodedV2(
         params, SpendTransactionVersion::V2, out_coin_data.size());
     encodedV2 >> decodedV2;

@@ -196,6 +196,13 @@ private:
         }
 
         ReadWriteFixedVector(s, ser_action, cover_set_ids, input_count);
+        for (uint64_t id : cover_set_ids) {
+            if (id == 0 ||
+                id > static_cast<uint64_t>(
+                    std::numeric_limits<int32_t>::max())) {
+                throw std::ios_base::failure("bad Spark V2 cover-set id");
+            }
+        }
 
         uint64_t block_hash_count = set_id_blockHash.size();
         if (ser_action.ForRead()) {
