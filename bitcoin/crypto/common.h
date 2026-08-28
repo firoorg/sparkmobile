@@ -32,7 +32,7 @@
 #define le64toh(x) OSSwapLittleToHostInt64(x)
 
 #else
-#include <endian.h>
+#include "../endian_compat.h"
 #endif
 
 uint16_t static inline ReadLE16(const unsigned char* ptr)
