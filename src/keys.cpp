@@ -155,6 +155,10 @@ Address::Address(const IncomingViewKey& incoming_view_key, const uint64_t i) {
 	this->d = SparkUtils::diversifier_encrypt(key, i);
 	this->Q1 = SparkUtils::hash_div(this->d)*incoming_view_key.get_s1();
 	this->Q2 = this->params->get_F()*SparkUtils::hash_Q2(incoming_view_key.get_s1(), i) + incoming_view_key.get_P2();
+
+	if (this->Q1.isInfinity() || this->Q2.isInfinity()) {
+		throw std::invalid_argument("Bad address key");
+	}
 }
 
 const Params* Address::get_params() const {
@@ -214,8 +218,8 @@ unsigned char Address::decode(const std::string& str) {
 		throw std::invalid_argument("Bad address encoding");
 	}
 
-	// Check the encoding prefix
-	if (decoded.hrp[0] != ADDRESS_ENCODING_PREFIX) {
+	// Check the encoding prefix and network identifier
+	if (decoded.hrp.size() != 2 || decoded.hrp[0] != ADDRESS_ENCODING_PREFIX) {
 		throw std::invalid_argument("Bad address prefix");
 	}
 
@@ -224,7 +228,9 @@ unsigned char Address::decode(const std::string& str) {
 
 	// Convert the address components to bytes
 	std::vector<uint8_t> scrambled;
-	bech32::convertbits(scrambled, decoded.data, 5, 8, false);
+	if (!bech32::convertbits(scrambled, decoded.data, 5, 8, false)) {
+		throw std::invalid_argument("Bad address encoding");
+	}
 
 	// Assert the proper address size
 	if (scrambled.size() != 2 * GroupElement::serialize_size + AES_BLOCKSIZE) {
@@ -239,9 +245,22 @@ unsigned char Address::decode(const std::string& str) {
 
 	std::vector<unsigned char> component(raw.begin() + AES_BLOCKSIZE, raw.begin() + AES_BLOCKSIZE + GroupElement::serialize_size);
 	this->Q1.deserialize(component.data());
+	std::vector<unsigned char> canonical(GroupElement::serialize_size);
+	this->Q1.serialize(canonical.data());
+	if (component != canonical) {
+		throw std::invalid_argument("Bad address key encoding");
+	}
 	
 	component = std::vector<unsigned char>(raw.begin() + AES_BLOCKSIZE + GroupElement::serialize_size, raw.end());
 	this->Q2.deserialize(component.data());
+	this->Q2.serialize(canonical.data());
+	if (component != canonical) {
+		throw std::invalid_argument("Bad address key encoding");
+	}
+
+	if (this->Q1.isInfinity() || this->Q2.isInfinity()) {
+		throw std::invalid_argument("Bad address key");
+	}
 
 	return network;
 }

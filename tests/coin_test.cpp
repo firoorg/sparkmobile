@@ -161,6 +161,18 @@ BOOST_AUTO_TEST_CASE(rejects_short_recipient_memo_payloads)
     BOOST_CHECK_THROW(spend.identify(incoming_view_key), std::runtime_error);
 }
 
+BOOST_AUTO_TEST_CASE(rejects_invalid_recipient_keys)
+{
+    const Params* params = Params::get_default();
+    Address invalid_address(params);
+    Scalar k;
+    k.randomize();
+
+    BOOST_CHECK_THROW(
+        Coin(params, COIN_TYPE_MINT, k, invalid_address, 86, "", {}),
+        std::invalid_argument);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }

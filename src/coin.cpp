@@ -51,6 +51,10 @@ Coin::Coin(
 	}
 	this->type = type;
 
+	if (address.get_Q1().isInfinity() || address.get_Q2().isInfinity()) {
+		throw std::invalid_argument("Bad address key");
+	}
+
 
 	//
 	// Common elements to both coin types

@@ -13,6 +13,29 @@ namespace spark {
 using namespace secp_primitives;
 class SparkTest {};
 
+static std::string encode_address(
+        const Address& address,
+        const GroupElement& Q1,
+        const GroupElement& Q2) {
+    std::vector<unsigned char> raw(address.get_d());
+    std::vector<unsigned char> component(GroupElement::serialize_size);
+    Q1.serialize(component.data());
+    raw.insert(raw.end(), component.begin(), component.end());
+    Q2.serialize(component.data());
+    raw.insert(raw.end(), component.begin(), component.end());
+
+    const unsigned char network = ADDRESS_NETWORK_TESTNET;
+    std::vector<unsigned char> scrambled =
+        F4Grumble(network, raw.size()).encode(raw);
+    std::vector<uint8_t> converted;
+    bech32::convertbits(converted, scrambled, 8, 5, true);
+
+    std::string hrp;
+    hrp.push_back(ADDRESS_ENCODING_PREFIX);
+    hrp.push_back(network);
+    return bech32::encode(hrp, converted, bech32::Encoding::BECH32M);
+}
+
 BOOST_FIXTURE_TEST_SUITE(spark_address_tests, SparkTest)
 
 BOOST_AUTO_TEST_CASE(spend_key_derivation)
@@ -158,6 +181,62 @@ BOOST_AUTO_TEST_CASE(evil_network)
     // Decode address
     Address decoded;
     BOOST_CHECK_THROW(decoded.decode(encoded), std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(rejects_invalid_address_keys)
+{
+    const Params* params = Params::get_test();
+    SpendKey spend_key(params);
+    FullViewKey full_view_key(spend_key);
+    IncomingViewKey incoming_view_key(full_view_key);
+    Address address(incoming_view_key, 12345);
+    GroupElement identity;
+
+    for (const std::string& encoded : {
+            encode_address(address, identity, address.get_Q2()),
+            encode_address(address, address.get_Q1(), identity),
+            encode_address(address, identity, identity)}) {
+        Address decoded;
+        BOOST_CHECK_THROW(decoded.decode(encoded), std::invalid_argument);
+    }
+
+    IncomingViewKey invalid_view_key(params);
+    BOOST_CHECK_THROW(Address(invalid_view_key, 12345), std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(rejects_noncanonical_address_encoding)
+{
+    const Params* params = Params::get_test();
+    SpendKey spend_key(params);
+    Address address(IncomingViewKey(FullViewKey(spend_key)), 12345);
+    bech32::DecodeResult decoded =
+        bech32::decode(address.encode(ADDRESS_NETWORK_TESTNET));
+
+    decoded.data.back() |= 1;
+    std::string encoded = bech32::encode(
+        decoded.hrp, decoded.data, bech32::Encoding::BECH32M);
+    Address bad_padding;
+    BOOST_CHECK_THROW(bad_padding.decode(encoded), std::invalid_argument);
+
+    decoded = bech32::decode(address.encode(ADDRESS_NETWORK_TESTNET));
+    std::string short_hrp(1, ADDRESS_ENCODING_PREFIX);
+    encoded = bech32::encode(
+        short_hrp, decoded.data, bech32::Encoding::BECH32M);
+    Address bad_hrp;
+    BOOST_CHECK_THROW(bad_hrp.decode(encoded), std::invalid_argument);
+
+    decoded = bech32::decode(address.encode(ADDRESS_NETWORK_TESTNET));
+    std::vector<uint8_t> scrambled;
+    BOOST_REQUIRE(bech32::convertbits(scrambled, decoded.data, 5, 8, false));
+    std::vector<unsigned char> raw =
+        F4Grumble(ADDRESS_NETWORK_TESTNET, scrambled.size()).decode(scrambled);
+    raw[AES_BLOCKSIZE + 32] = 2;
+    scrambled = F4Grumble(ADDRESS_NETWORK_TESTNET, raw.size()).encode(raw);
+    decoded.data.clear();
+    BOOST_REQUIRE(bech32::convertbits(decoded.data, scrambled, 8, 5, true));
+    encoded = bech32::encode(decoded.hrp, decoded.data, bech32::Encoding::BECH32M);
+    Address noncanonical_key;
+    BOOST_CHECK_THROW(noncanonical_key.decode(encoded), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
