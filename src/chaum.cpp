@@ -100,7 +100,7 @@ bool Chaum::verify_v1(
     const Scalar& mu,
     const std::vector<GroupElement>& S,
     const std::vector<GroupElement>& T,
-    ChaumProofV1& proof
+    const ChaumProofV1& proof
 ) {
     // Check proof semantics
     std::size_t n = S.size();
@@ -199,7 +199,7 @@ bool Chaum::verify_single_input(
     const Scalar& mu,
     const std::vector<GroupElement>& S,
     const std::vector<GroupElement>& T,
-    ChaumProofV1& proof
+    const ChaumProofV1& proof
 ) {
     if (S.size() != 1 || T.size() != 1) {
         return false;

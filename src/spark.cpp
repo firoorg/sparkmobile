@@ -1,11 +1,9 @@
 #include "../include/spark.h"
 #include "spark.h"
 #include <limits>
+#include <utility>
 //#include "../bitcoin/amount.h"
 //#include <iostream>
-
-#define SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION     (10000 * COIN)
-
 
 spark::SpendKey createSpendKey(const SpendKeyData& data) {
     std::string nCountStr = std::to_string(data.getIndex());
@@ -236,7 +234,7 @@ void createSparkSpendTransaction(
         const std::vector<std::pair<CAmount, bool>>& recipients,
         const std::vector<std::pair<spark::OutputCoinData, bool>>& privateRecipients,
         std::list<CSparkMintMeta> coins,
-        const std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data_all,
+        const std::unordered_map<uint64_t, spark::CoverSetData>& cover_set_data_all,
         const std::map<uint64_t, uint256>& idAndBlockHashes_all,
         const uint256& txHashSig,
         std::size_t additionalTxSize,
@@ -301,7 +299,7 @@ void createSparkSpendTransaction(
     }
 
     std::pair<CAmount, std::vector<CSparkMintMeta>> estimated =
-            SelectSparkCoins(vOut + mintVOut, recipientsToSubtractFee, coins, privateRecipients.size(), recipients.size(), additionalTxSize, version);
+            SelectSparkCoins(vOut + mintVOut, recipientsToSubtractFee, std::move(coins), privateRecipients.size(), recipients.size(), additionalTxSize, version);
 
     if (version == spark::SpendTransactionVersion::V1 &&
         estimated.second.size() != 1) {
@@ -355,11 +353,9 @@ void createSparkSpendTransaction(
     }
 
     const spark::Params* params = spark::Params::get_default();
-    if (spendKey == spark::SpendKey(params))
-        throw std::runtime_error("Invalid pend key.");
 
     CAmount spendInCurrentTx = 0;
-    for (auto& spendCoin : estimated.second)
+    for (const auto& spendCoin : estimated.second)
         spendInCurrentTx += spendCoin.v;
     spendInCurrentTx -= fee;
 
@@ -405,10 +401,8 @@ void createSparkSpendTransaction(
     // clear vExtraPayload to calculate metadata hash correctly
     serializedSpend.clear();
 
-    // We will write this into cover set representation, with anonymity set hash
-    uint256 sig = txHashSig;
-
     std::vector<spark::InputCoinData> inputs;
+    inputs.reserve(estimated.second.size());
     std::map<uint64_t, uint256> idAndBlockHashes;
     std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data;
     for (auto& coin : estimated.second) {
@@ -422,11 +416,12 @@ void createSparkSpendTransaction(
                 cover_set_data[groupId].cover_set_representation.size() != txHashSig.size()) {
                 throw std::runtime_error("Spark V2 cover set representation must be 32 bytes");
             }
-            cover_set_data[groupId].cover_set_representation.insert(cover_set_data[groupId].cover_set_representation.end(), sig.begin(), sig.end());
+            cover_set_data[groupId].cover_set_representation.insert(cover_set_data[groupId].cover_set_representation.end(), txHashSig.begin(), txHashSig.end());
 
         }
 
-        spark::InputCoinData inputCoinData;
+        inputs.emplace_back();
+        spark::InputCoinData& inputCoinData = inputs.back();
         inputCoinData.cover_set_id = groupId;
         std::size_t index = 0;
         if (!getIndex(coin.coin, cover_set_data[groupId].cover_set, index))
@@ -445,7 +440,6 @@ void createSparkSpendTransaction(
 
         inputCoinData.T = recoveredCoinData.T;
         inputCoinData.s = recoveredCoinData.s;
-        inputs.push_back(inputCoinData);
     }
 
     spark::SpendTransaction spendTransaction(
@@ -466,17 +460,17 @@ void createSparkSpendTransaction(
 
     outputScripts.clear();
     const std::vector<spark::Coin>& outCoins = spendTransaction.getOutCoins();
-    for (auto& outCoin : outCoins) {
+    for (const auto& outCoin : outCoins) {
         // construct spend script
         CDataStream serialized(SER_NETWORK, PROTOCOL_VERSION);
         serialized << outCoin;
         std::vector<unsigned char> script;
         script.push_back((unsigned char)OP_SPARKSMINT);
         script.insert(script.end(), serialized.begin(), serialized.end());
-        outputScripts.emplace_back(script);
+        outputScripts.emplace_back(std::move(script));
     }
 
-        spentCoinsOut = estimated.second;
+    spentCoinsOut = std::move(estimated.second);
 }
 
 spark::Address getAddress(const spark::IncomingViewKey& incomingViewKey, const uint64_t diversifier)

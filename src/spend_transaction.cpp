@@ -390,7 +390,7 @@ bool SpendTransaction::verify(
 
 	// Process each transaction
 	for (std::size_t i = 0; i < transactions.size(); i++) {
-		SpendTransaction tx = transactions[i];
+		const SpendTransaction& tx = transactions[i];
 
 		// Assert common parameters
 		if (params != tx.params) {
@@ -514,7 +514,6 @@ bool SpendTransaction::verify(
 	}
 
 	// Verify all Grootle proofs in batches (based on cover set)
-	// TODO: Finish this
 	Grootle grootle(
 		params->get_H(),
 		params->get_G_grootle(),
@@ -522,9 +521,9 @@ bool SpendTransaction::verify(
 		params->get_n_grootle(),
 		params->get_m_grootle()
 	);
-	for (auto grootle_bucket : grootle_buckets) {
+	for (const auto& grootle_bucket : grootle_buckets) {
 		const uint64_t cover_set_id = grootle_bucket.first;
-		std::vector<std::pair<std::size_t, std::size_t>> proof_indexes = grootle_bucket.second;
+		const auto& proof_indexes = grootle_bucket.second;
 
 		// Build the proof statement and metadata vectors from these proofs
 		std::vector<GroupElement> S, S1, V, V1;
@@ -547,7 +546,7 @@ bool SpendTransaction::verify(
             V.emplace_back(cover_set[i].C);
         }
 
-        for (auto proof_index : proof_indexes) {
+        for (const auto& proof_index : proof_indexes) {
             const auto& tx = transactions[proof_index.first];
 			// Because we assume all proofs in this list share a monotonic cover set, the largest such set is the one to use for verification
             if (!tx.cover_set_sizes.count(cover_set_id))
