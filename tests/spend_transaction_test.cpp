@@ -231,7 +231,13 @@ BOOST_AUTO_TEST_CASE(versioned_generate_verify_and_serialization)
         CDataStream invalid(bytes, SER_NETWORK, PROTOCOL_VERSION);
         SpendTransaction parser(
             params, SpendTransactionVersion::V2, out_coin_data.size());
-        BOOST_CHECK_THROW(invalid >> parser, std::ios_base::failure);
+        BOOST_CHECK_EXCEPTION(
+            invalid >> parser,
+            std::ios_base::failure,
+            [](const std::ios_base::failure& error) {
+                return std::string(error.what()).find(
+                    "bad Spark V2 cover-set id") != std::string::npos;
+            });
     };
 
     auto zeroGroupId = originalV2;
@@ -282,9 +288,17 @@ BOOST_AUTO_TEST_CASE(versioned_generate_verify_and_serialization)
     BOOST_CHECK(!SpendTransaction::verify(reorderedParser, cover_sets));
 
     SpendTransaction extraneousCoverSet(transactionV2);
-    extraneousCoverSet.setBlockHashes({{999, uint256S("02")}});
+    auto extraneousBlockHashes = blockHashes;
+    extraneousBlockHashes.emplace(999, uint256S("02"));
+    extraneousCoverSet.setBlockHashes(extraneousBlockHashes);
     CDataStream extraneousEncoding(SER_NETWORK, PROTOCOL_VERSION);
-    BOOST_CHECK_THROW(extraneousEncoding << extraneousCoverSet, std::exception);
+    BOOST_CHECK_EXCEPTION(
+        extraneousEncoding << extraneousCoverSet,
+        std::ios_base::failure,
+        [](const std::ios_base::failure& error) {
+            return std::string(error.what()).find(
+                "Spark V2 cover-set hash has no input") != std::string::npos;
+        });
 
     SpendTransaction missingCoverSet(transactionV2);
     missingCoverSet.setBlockHashes({});

@@ -328,9 +328,9 @@ BOOST_AUTO_TEST_CASE(v2_rejects_bad_dimensions)
     ChaumProofV2 proof;
 
     BOOST_CHECK(!chaum.verify_v2(mu, context, {}, {}, proof));
-    std::vector<GroupElement> S(MAX_CHAUM_V2_INPUTS + 1);
-    std::vector<GroupElement> T(MAX_CHAUM_V2_INPUTS + 1);
-    BOOST_CHECK(!chaum.verify_v2(mu, context, S, T, proof));
+    BOOST_CHECK_THROW(
+        CheckV2Completeness(MAX_CHAUM_V2_INPUTS + 1),
+        std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

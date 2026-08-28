@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
         SpendTransactionVersion::V1);
     BOOST_CHECK_EQUAL(r.second.size(), 1);
 
-    BOOST_CHECK_THROW(
+    BOOST_CHECK_EXCEPTION(
         SelectSparkCoins(
             MAX_MONEY + 1,
             true,
@@ -70,7 +70,11 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
             0,
             0,
             SpendTransactionVersion::V2),
-        std::invalid_argument);
+        std::invalid_argument,
+        [](const std::invalid_argument& error) {
+            return std::string(error.what()) ==
+                "Spark spend amount is out of range";
+        });
     BOOST_CHECK_THROW(
         SelectSparkCoins(
             1,
@@ -86,7 +90,7 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
     std::vector<uint8_t> serializedSpend;
     std::vector<std::vector<unsigned char>> outputScripts;
     std::vector<CSparkMintMeta> spentCoins;
-    BOOST_CHECK_THROW(
+    BOOST_CHECK_EXCEPTION(
         createSparkSpendTransaction(
             spend_key,
             full_view_key,
@@ -104,7 +108,11 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
             serializedSpend,
             outputScripts,
             spentCoins),
-        std::runtime_error);
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string(error.what()) ==
+                "Recipient has invalid amount";
+        });
     BOOST_CHECK_THROW(
         createSparkSpendTransaction(
             spend_key,
@@ -124,7 +132,7 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
             outputScripts,
             spentCoins),
         std::runtime_error);
-    BOOST_CHECK_THROW(
+    BOOST_CHECK_EXCEPTION(
         createSparkSpendTransaction(
             spend_key,
             full_view_key,
@@ -142,7 +150,11 @@ BOOST_AUTO_TEST_CASE(mintCoinTest)
             serializedSpend,
             outputScripts,
             spentCoins),
-        std::runtime_error);
+        std::runtime_error,
+        [](const std::runtime_error& error) {
+            return std::string(error.what()) ==
+                "Recipient amount is too small after fee deduction";
+        });
 }
 
 BOOST_AUTO_TEST_SUITE_END()
