@@ -599,20 +599,16 @@ void ParseSparkMintCoin(const CScript& script, spark::Coin& txCoin)
 
 CSparkMintMeta getMetadata(const spark::Coin& coin, const spark::IncomingViewKey& incoming_view_key) {
     CSparkMintMeta meta;
-    spark::IdentifiedCoinData identifiedCoinData;
-    try {
-        identifiedCoinData = identifyCoin(coin, incoming_view_key);
-    } catch (...) {
-        return meta;
-    }
+    const spark::IdentifiedCoinData identifiedCoinData =
+        identifyCoin(coin, incoming_view_key);
 
-    meta.isUsed = false;
     meta.v = identifiedCoinData.v;
     meta.memo = identifiedCoinData.memo;
     meta.d = identifiedCoinData.d;
     meta.i = identifiedCoinData.i;
     meta.k = identifiedCoinData.k;
-    meta.serial_context = {};
+    meta.serial_context = coin.serial_context;
+    meta.type = coin.type;
     meta.coin = coin;
 
     return meta;
@@ -621,12 +617,8 @@ CSparkMintMeta getMetadata(const spark::Coin& coin, const spark::IncomingViewKey
 spark::InputCoinData getInputData(spark::Coin coin, const spark::FullViewKey& full_view_key, const spark::IncomingViewKey& incoming_view_key)
 {
     spark::InputCoinData inputCoinData;
-    spark::IdentifiedCoinData identifiedCoinData;
-    try {
-        identifiedCoinData = identifyCoin(coin, incoming_view_key);
-    } catch (...) {
-        return inputCoinData;
-    }
+    const spark::IdentifiedCoinData identifiedCoinData =
+        identifyCoin(coin, incoming_view_key);
 
     spark::RecoveredCoinData recoveredCoinData = coin.recover(full_view_key, identifiedCoinData);
     inputCoinData.T = recoveredCoinData.T;

@@ -96,6 +96,45 @@ BOOST_AUTO_TEST_CASE(generate_verify)
         outputScripts));
 }
 
+BOOST_AUTO_TEST_CASE(metadata_round_trip_and_identification_errors)
+{
+    const Params* params = Params::get_default();
+    SpendKey spendKey(params);
+    FullViewKey fullViewKey(spendKey);
+    IncomingViewKey incomingViewKey(fullViewKey);
+    Address address(incomingViewKey, uint64_t{42});
+    Scalar nonce;
+    nonce.randomize();
+    const std::vector<unsigned char> serialContext{1, 2, 3};
+    Coin coin(
+        params,
+        COIN_TYPE_SPEND,
+        nonce,
+        address,
+        123,
+        "memo",
+        serialContext);
+
+    const CSparkMintMeta meta = getMetadata(coin, incomingViewKey);
+    BOOST_CHECK_EQUAL(meta.type, COIN_TYPE_SPEND);
+    BOOST_CHECK(meta.serial_context == serialContext);
+
+    const Coin rebuilt = getCoinFromMeta(meta, incomingViewKey);
+    BOOST_CHECK(rebuilt.S == coin.S);
+    BOOST_CHECK(rebuilt.K == coin.K);
+    BOOST_CHECK(rebuilt.C == coin.C);
+
+    SpendKey otherSpendKey(params);
+    FullViewKey otherFullViewKey(otherSpendKey);
+    IncomingViewKey otherIncomingViewKey(otherFullViewKey);
+    BOOST_CHECK_THROW(
+        getMetadata(coin, otherIncomingViewKey),
+        std::runtime_error);
+    BOOST_CHECK_THROW(
+        getInputData(coin, otherFullViewKey, otherIncomingViewKey),
+        std::runtime_error);
+}
+
 BOOST_AUTO_TEST_CASE(spark_v2_builder)
 {
     auto* params = spark::Params::get_default();
