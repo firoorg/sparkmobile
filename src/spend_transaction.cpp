@@ -39,6 +39,11 @@ SpendTransaction::SpendTransaction(
 		version != SpendTransactionVersion::V2) {
 		throw std::invalid_argument("Unsupported Spark spend version");
 	}
+	if (version == SpendTransactionVersion::V1 &&
+		!extension_commitment.IsNull()) {
+		throw std::invalid_argument(
+			"Spark V1 cannot bind an extension commitment");
+	}
 	this->set_id_blockHash = block_hashes;
 	if (version == SpendTransactionVersion::V2) {
 		std::set<uint64_t> referenced_ids;

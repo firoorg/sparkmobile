@@ -129,6 +129,20 @@ BOOST_AUTO_TEST_CASE(versioned_generate_verify_and_serialization)
         out_coin_data
     );
 
+    BOOST_CHECK_THROW(
+        SpendTransaction(
+            params,
+            full_view_key,
+            spend_key,
+            spend_coin_data,
+            cover_set_data,
+            f,
+            0,
+            out_coin_data,
+            SpendTransactionVersion::V1,
+            uint256S("01")),
+        std::invalid_argument);
+
     // Historical V1 remains byte-compatible and multi-input verification is
     // available only through the explicit historical path.
     transaction.setCoverSets(cover_set_data);
