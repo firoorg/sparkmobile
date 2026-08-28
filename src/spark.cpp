@@ -300,9 +300,6 @@ void createSparkSpendTransaction(
         throw std::runtime_error("Spark spend output amount is out of range");
     }
 
-    if (vOut > SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION)
-        throw std::runtime_error("Spend to transparent address limit exceeded (10,000 Firo per transaction).");
-
     std::pair<CAmount, std::vector<CSparkMintMeta>> estimated =
             SelectSparkCoins(vOut + mintVOut, recipientsToSubtractFee, coins, privateRecipients.size(), recipients.size(), additionalTxSize, version);
 

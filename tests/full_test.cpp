@@ -107,8 +107,8 @@ BOOST_AUTO_TEST_CASE(spark_v2_builder)
     Address address(incoming_view_key, uint64_t(1));
 
     std::vector<MintedCoinData> minted{
-        {address, uint64_t(4000), "memo"},
-        {address, uint64_t(5000), "memo"}};
+        {address, uint64_t(6000 * COIN), "memo"},
+        {address, uint64_t(6000 * COIN), "memo"}};
     std::vector<CRecipient> mintRecipients =
         createSparkMintRecipients(minted, {}, true);
     std::vector<CScript> mintScripts{
@@ -126,15 +126,19 @@ BOOST_AUTO_TEST_CASE(spark_v2_builder)
         inputCoins.push_back(meta);
     }
 
+    // Network and height policy belongs to the caller. The library must not
+    // reject an otherwise valid multi-input amount using its former cap.
+    const CAmount spendAmount = 11000 * COIN;
+    BOOST_REQUIRE(spendAmount > SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION);
     const auto v1Estimate = SelectSparkCoins(
-        7000, true, inputCoins, 0, 1, 0, SpendTransactionVersion::V1);
+        spendAmount, true, inputCoins, 0, 1, 0, SpendTransactionVersion::V1);
     const auto v2Estimate = SelectSparkCoins(
-        7000, true, inputCoins, 0, 1, 0, SpendTransactionVersion::V2);
+        spendAmount, true, inputCoins, 0, 1, 0, SpendTransactionVersion::V2);
     BOOST_CHECK_EQUAL(v1Estimate.second.size(), 2);
     BOOST_CHECK_EQUAL(v2Estimate.second.size(), 2);
     BOOST_CHECK_EQUAL(v2Estimate.first - v1Estimate.first, 32 + 98);
 
-    std::vector<std::pair<CAmount, bool>> recipients{{7000, true}};
+    std::vector<std::pair<CAmount, bool>> recipients{{spendAmount, true}};
     std::vector<std::pair<OutputCoinData, bool>> privateRecipients;
     std::unordered_map<uint64_t, CoverSetData> coverSetData;
     coverSetData[1] = {coins, std::vector<unsigned char>(uint256().size(), 0x11)};
@@ -217,7 +221,7 @@ BOOST_AUTO_TEST_CASE(spark_v2_builder)
         txHash.begin(),
         txHash.end());
     spend.setCoverSets(coverSetData);
-    spend.setVout(7000 - fee);
+    spend.setVout(spendAmount - fee);
     std::unordered_map<uint64_t, std::vector<Coin>> coverSets{{1, coins}};
     BOOST_CHECK(SpendTransaction::verify(spend, coverSets));
 }
