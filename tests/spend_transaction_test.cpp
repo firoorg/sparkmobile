@@ -161,38 +161,37 @@ BOOST_AUTO_TEST_CASE(versioned_generate_verify_and_serialization)
     for (const auto& entry : cover_set_data) {
         blockHashes.emplace(entry.first, uint256S("01"));
     }
-    auto badGroupInputs = spend_coin_data;
-    badGroupInputs[0].cover_set_id = 0;
-    BOOST_CHECK_THROW(
-        SpendTransaction(
-            params,
-            full_view_key,
-            spend_key,
-            badGroupInputs,
-            cover_set_data,
-            f,
-            0,
-            out_coin_data,
-            SpendTransactionVersion::V2,
-            uint256(),
-            blockHashes),
-        std::invalid_argument);
-    badGroupInputs[0].cover_set_id =
-        static_cast<uint64_t>(std::numeric_limits<int32_t>::max()) + 1;
-    BOOST_CHECK_THROW(
-        SpendTransaction(
-            params,
-            full_view_key,
-            spend_key,
-            badGroupInputs,
-            cover_set_data,
-            f,
-            0,
-            out_coin_data,
-            SpendTransactionVersion::V2,
-            uint256(),
-            blockHashes),
-        std::invalid_argument);
+    const auto checkInvalidConstructorGroupId = [&](uint64_t invalidId) {
+        auto invalidInputs = spend_coin_data;
+        invalidInputs[0].cover_set_id = invalidId;
+        auto invalidCoverSets = cover_set_data;
+        invalidCoverSets.emplace(
+            invalidId,
+            cover_set_data.at(spend_coin_data[0].cover_set_id));
+        auto invalidBlockHashes = blockHashes;
+        invalidBlockHashes.emplace(invalidId, uint256S("01"));
+        BOOST_CHECK_EXCEPTION(
+            SpendTransaction(
+                params,
+                full_view_key,
+                spend_key,
+                invalidInputs,
+                invalidCoverSets,
+                f,
+                0,
+                out_coin_data,
+                SpendTransactionVersion::V2,
+                uint256(),
+                invalidBlockHashes),
+            std::invalid_argument,
+            [](const std::invalid_argument& error) {
+                return std::string(error.what()) ==
+                    "Bad Spark V2 cover-set id";
+            });
+    };
+    checkInvalidConstructorGroupId(0);
+    checkInvalidConstructorGroupId(
+        static_cast<uint64_t>(std::numeric_limits<int32_t>::max()) + 1);
 
     SpendTransaction transactionV2(
         params,
@@ -311,10 +310,18 @@ BOOST_AUTO_TEST_CASE(versioned_generate_verify_and_serialization)
     BOOST_CHECK_THROW(wrongVersion >> rejectedVersion, std::exception);
 
     CDataStream oversized(SER_NETWORK, PROTOCOL_VERSION);
-    oversized.write("\x02\x65", 2);
+    oversized << static_cast<uint8_t>(SpendTransactionVersion::V2);
+    WriteCompactSize(oversized, MAX_CHAUM_V2_INPUTS + 1);
+    WriteCompactSize(oversized, out_coin_data.size());
     SpendTransaction boundedParser(
         params, SpendTransactionVersion::V2, out_coin_data.size());
-    BOOST_CHECK_THROW(oversized >> boundedParser, std::exception);
+    BOOST_CHECK_EXCEPTION(
+        oversized >> boundedParser,
+        std::ios_base::failure,
+        [](const std::ios_base::failure& error) {
+            return std::string(error.what()).find("bad Spark V2 dimensions") !=
+                std::string::npos;
+        });
 }
 
 BOOST_AUTO_TEST_SUITE_END()
