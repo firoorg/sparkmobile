@@ -133,6 +133,11 @@ BOOST_AUTO_TEST_CASE(spark_name_v2_binding_helpers)
     BOOST_CHECK(
         getSparkNameOwnershipMessage(
             digest, spark::SpendTransactionVersion::V1) == expectedV1);
+    BOOST_CHECK_THROW(
+        getSparkNameOwnershipMessage(
+            uint256S(std::string(64, 'f')),
+            spark::SpendTransactionVersion::V1),
+        std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(rejects_unsupported_spark_name_data)
