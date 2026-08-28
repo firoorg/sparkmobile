@@ -226,6 +226,21 @@ BOOST_AUTO_TEST_CASE(spark_v2_builder)
     BOOST_CHECK(SpendTransaction::verify(spend, coverSets));
 }
 
+BOOST_AUTO_TEST_CASE(parameter_sets_are_independent)
+{
+    const Params* testParams = Params::get_test();
+    const Params* defaultParams = Params::get_default();
+
+    BOOST_CHECK(testParams != defaultParams);
+    BOOST_CHECK_EQUAL(testParams->get_n_grootle(), 2);
+    BOOST_CHECK_EQUAL(defaultParams->get_n_grootle(), 8);
+
+    SpendKey assigned(defaultParams);
+    const SpendKey testKey(testParams);
+    assigned = testKey;
+    BOOST_CHECK(assigned.get_params() == testParams);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }
