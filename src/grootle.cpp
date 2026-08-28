@@ -412,6 +412,11 @@ bool Grootle::verify(
 //        LogPrintf("Invalid root vector size");
         return false;
     }
+    for (const std::size_t size : sizes) {
+        if (size == 0 || size > S.size()) {
+            return false;
+        }
+    }
 
     // Check proof semantics
     for (std::size_t t = 0; t < M; t++) {

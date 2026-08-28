@@ -12,6 +12,8 @@
 #include "../src/scratch_impl.h"
 #include "../src/ecmult_impl.h"
 
+#include <stdexcept>
+
 
 typedef struct {
     secp256k1_scalar *sc;
@@ -40,6 +42,9 @@ MultiExponent::MultiExponent(const MultiExponent& other)
 }
 
 MultiExponent::MultiExponent(const std::vector<GroupElement>& generators, const std::vector<Scalar>& powers){
+    if (generators.size() != powers.size()) {
+        throw std::invalid_argument("MultiExponent: generator and scalar counts must match");
+    }
     sc_ = new secp256k1_scalar[powers.size()];
     pt_ = new secp256k1_gej[generators.size()];
     n_points = generators.size();

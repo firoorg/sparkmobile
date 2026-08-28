@@ -20,6 +20,13 @@ class SparkTest {};
 
 BOOST_FIXTURE_TEST_SUITE(spark_grootle_tests, SparkTest)
 
+BOOST_AUTO_TEST_CASE(multiexponent_size_mismatch)
+{
+    std::vector<GroupElement> points(1);
+    std::vector<Scalar> scalars;
+    BOOST_CHECK_THROW(secp_primitives::MultiExponent(points, scalars), std::invalid_argument);
+}
+
 BOOST_AUTO_TEST_CASE(batch)
 {
     // Parameters
@@ -60,8 +67,7 @@ BOOST_AUTO_TEST_CASE(batch)
         // Prepare random data in place of Merkle root
         Scalar temp;
         temp.randomize();
-        std::vector<unsigned char> root;
-        root.reserve(SCALAR_ENCODING);
+        std::vector<unsigned char> root(SCALAR_ENCODING);
         temp.serialize(root.data());
         roots.emplace_back(root);
     }
@@ -91,6 +97,8 @@ BOOST_AUTO_TEST_CASE(batch)
     }
 
     BOOST_CHECK(grootle.verify(S, S1, V, V1, roots, sizes, proofs));
+    BOOST_CHECK(!grootle.verify(S, S1[0], V, V1[0], roots[0], 0, proofs[0]));
+    BOOST_CHECK(!grootle.verify(S, S1[0], V, V1[0], roots[0], S.size() + 1, proofs[0]));
 }
 
 BOOST_AUTO_TEST_CASE(invalid_batch)
@@ -133,8 +141,7 @@ BOOST_AUTO_TEST_CASE(invalid_batch)
         // Prepare random data in place of Merkle root
         Scalar temp;
         temp.randomize();
-        std::vector<unsigned char> root;
-        root.reserve(SCALAR_ENCODING);
+        std::vector<unsigned char> root(SCALAR_ENCODING);
         temp.serialize(root.data());
         roots.emplace_back(root);
     }
