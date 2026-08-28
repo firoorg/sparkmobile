@@ -56,6 +56,7 @@ Scalar::Scalar(const Scalar& other)
 }
 
 Scalar::~Scalar() {
+    secp256k1_scalar_clear(reinterpret_cast<secp256k1_scalar *>(value_));
     delete reinterpret_cast<secp256k1_scalar *>(value_);
 }
 

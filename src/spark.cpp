@@ -19,8 +19,8 @@ spark::SpendKey createSpendKey(const SpendKeyData& data) {
 
     secp_primitives::Scalar r;
     r.memberFromSeed(hash);
-    spark::SpendKey key(spark::Params::get_default(), r);
-    return key;
+    memory_cleanse(hash, sizeof(hash));
+    return spark::SpendKey(spark::Params::get_default(), r);
 }
 
 spark::FullViewKey createFullViewKey(const spark::SpendKey& spendKey) {

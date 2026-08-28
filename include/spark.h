@@ -8,7 +8,9 @@
 #include "../src/mint_transaction.h"
 #include "../src/spend_transaction.h"
 #include "../src/sparkname.h"
+#include "../bitcoin/support/cleanse.h"
 #include <list>
+#include <stdexcept>
 //#include <string>
 //
 
@@ -35,10 +37,15 @@ struct CRecipient
 
 class SpendKeyData {
 public:
-    SpendKeyData(unsigned char* keydata, int32_t index = DEFAULT_SPARK_NCOUNT) {
+    SpendKeyData(const unsigned char* keydata, int32_t index = DEFAULT_SPARK_NCOUNT) {
+        if (!keydata) {
+            throw std::invalid_argument("Missing Spark key data");
+        }
         memcpy(this->keydata, keydata, 32);
         this->index = index;
     }
+
+    ~SpendKeyData() { memory_cleanse(keydata, sizeof(keydata)); }
 
     const unsigned char* getKeyData() const { return keydata; }
     const int32_t getIndex() const {return index; }

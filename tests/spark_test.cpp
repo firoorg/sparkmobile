@@ -22,6 +22,11 @@ class SparkTest {};
 
 BOOST_FIXTURE_TEST_SUITE(spark_test, SparkTest)
 
+BOOST_AUTO_TEST_CASE(rejects_missing_spend_key_data)
+{
+    BOOST_CHECK_THROW(SpendKeyData(nullptr), std::invalid_argument);
+}
+
 BOOST_AUTO_TEST_CASE(mintCoinTest)
 {
     auto* params = spark::Params::get_default();
