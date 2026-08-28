@@ -10,6 +10,7 @@
 // Additionally, we account for the number of rounds by limiting the round counter encoding
 
 #include "f4grumble.h"
+#include "openssl_util.h"
 
 namespace spark {
 
@@ -96,54 +97,52 @@ std::vector<unsigned char> F4Grumble::decode(const std::vector<unsigned char>& i
 
 // Feistel round functions
 std::vector<unsigned char> F4Grumble::G(const unsigned char i, const std::vector<unsigned char>& u) {
-	EVP_MD_CTX* ctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(ctx, EVP_sha512(), NULL);
+	auto ctx = MakeDigestContext();
+    CheckOpenSSL(EVP_DigestInit_ex(ctx.get(), EVP_sha512(), NULL));
 
     // Bind the domain separator and network
     std::vector<unsigned char> domain(LABEL_F4GRUMBLE_G.begin(), LABEL_F4GRUMBLE_G.end());
-    EVP_DigestUpdate(ctx, domain.data(), domain.size());
-    EVP_DigestUpdate(ctx, &this->network, sizeof(this->network));
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), domain.data(), domain.size()));
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), &this->network, sizeof(this->network)));
 
     // Include the round index
-    EVP_DigestUpdate(ctx, &i, sizeof(i));
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), &i, sizeof(i)));
 
     // Include the input data
-    EVP_DigestUpdate(ctx, u.data(), u.size());
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), u.data(), u.size()));
 
     // Finalize the hash and resize
     std::vector<unsigned char> result;
     result.resize(EVP_MD_size(EVP_sha512()));
 
     unsigned int TEMP;
-    EVP_DigestFinal_ex(ctx, result.data(), &TEMP);
-    EVP_MD_CTX_free(ctx);
+    CheckOpenSSL(EVP_DigestFinal_ex(ctx.get(), result.data(), &TEMP));
     result.resize(this->l_R);
 
     return result;
 }
 
 std::vector<unsigned char> F4Grumble::H(const unsigned char i, const std::vector<unsigned char>& u) {
-	EVP_MD_CTX* ctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(ctx, EVP_sha512(), NULL);
+	auto ctx = MakeDigestContext();
+    CheckOpenSSL(EVP_DigestInit_ex(ctx.get(), EVP_sha512(), NULL));
 
     // Bind the domain separator and network
     std::vector<unsigned char> domain(LABEL_F4GRUMBLE_H.begin(), LABEL_F4GRUMBLE_H.end());
-    EVP_DigestUpdate(ctx, domain.data(), domain.size());
-    EVP_DigestUpdate(ctx, &this->network, sizeof(this->network));
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), domain.data(), domain.size()));
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), &this->network, sizeof(this->network)));
 
     // Include the round index
-    EVP_DigestUpdate(ctx, &i, sizeof(i));
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), &i, sizeof(i)));
 
     // Include the input data
-    EVP_DigestUpdate(ctx, u.data(), u.size());
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), u.data(), u.size()));
 
     // Finalize the hash and resize
     std::vector<unsigned char> result;
     result.resize(EVP_MD_size(EVP_sha512()));
 
     unsigned int TEMP;
-    EVP_DigestFinal_ex(ctx, result.data(), &TEMP);
-    EVP_MD_CTX_free(ctx);
+    CheckOpenSSL(EVP_DigestFinal_ex(ctx.get(), result.data(), &TEMP));
     result.resize(this->l_L);
 
     return result;

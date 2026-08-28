@@ -341,7 +341,7 @@ void GroupElement::randomize() {
 
     do {
         if (RAND_bytes(temp, 32) != 1) {
-            throw "Unable to generate random GroupElement";
+            throw std::runtime_error("Unable to generate random GroupElement");
         }
         generate(temp);
     } while (!(this->isMember()));

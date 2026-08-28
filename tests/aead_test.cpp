@@ -68,6 +68,9 @@ BOOST_AUTO_TEST_CASE(bad_tag)
 
     // Decrypt; this should fail
     BOOST_CHECK_THROW(ser = AEAD::decrypt_and_verify(prekey, "Associated data", data), std::runtime_error);
+
+    data.tag.pop_back();
+    BOOST_CHECK_THROW(ser = AEAD::decrypt_and_verify(prekey, "Associated data", data), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(bad_ciphertext)
