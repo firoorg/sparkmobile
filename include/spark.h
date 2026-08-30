@@ -71,6 +71,16 @@ spark::IdentifiedCoinData identifyCoin(spark::Coin coin, const spark::IncomingVi
 
 std::vector<CRecipient> createSparkMintRecipients(const std::vector<spark::MintedCoinData>& outputs, const std::vector<unsigned char>& serial_context, bool generate);
 
+/** Select inputs and estimate the Spark spend fee for the given version. */
+std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(
+        CAmount required,
+        bool subtractFeeFromAmount,
+        std::list<CSparkMintMeta> coins,
+        std::size_t mintNum,
+        std::size_t utxoNum,
+        std::size_t additionalTxSize,
+        spark::SpendTransactionVersion version);
+
 void createSparkSpendTransaction(
         const spark::SpendKey& spendKey,
         const spark::FullViewKey& fullViewKey,
