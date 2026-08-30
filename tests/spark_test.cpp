@@ -27,6 +27,33 @@ BOOST_AUTO_TEST_CASE(rejects_missing_spend_key_data)
     BOOST_CHECK_THROW(SpendKeyData(nullptr), std::invalid_argument);
 }
 
+BOOST_AUTO_TEST_CASE(rejects_invalid_mint_amounts)
+{
+    const Params* params = Params::get_default();
+    SpendKey spend_key(params);
+    FullViewKey full_view_key(spend_key);
+    IncomingViewKey incoming_view_key(full_view_key);
+    Address address(incoming_view_key, 1);
+
+    BOOST_CHECK_EXCEPTION(
+        createSparkMintRecipients(
+            {{address, static_cast<uint64_t>(MAX_MONEY) + 1, ""}},
+            {},
+            false),
+        std::invalid_argument,
+        [](const std::invalid_argument& error) {
+            return std::string(error.what()) ==
+                "Spark mint amount is out of range";
+        });
+    BOOST_CHECK_THROW(
+        createSparkMintRecipients(
+            {{address, static_cast<uint64_t>(MAX_MONEY), ""},
+             {address, 1, ""}},
+            {},
+            false),
+        std::invalid_argument);
+}
+
 BOOST_AUTO_TEST_CASE(mintCoinTest)
 {
     auto* params = spark::Params::get_default();

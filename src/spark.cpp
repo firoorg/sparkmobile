@@ -44,6 +44,15 @@ std::vector<CRecipient> createSparkMintRecipients(
                         const std::vector<unsigned char>& serial_context,
                         bool generate)
 {
+    CAmount total = 0;
+    for (const auto& output : outputs) {
+        if (output.v > static_cast<uint64_t>(MAX_MONEY) ||
+                static_cast<CAmount>(output.v) > MAX_MONEY - total) {
+            throw std::invalid_argument("Spark mint amount is out of range");
+        }
+        total += static_cast<CAmount>(output.v);
+    }
+
     const spark::Params* params = spark::Params::get_default();
 
     spark::MintTransaction sparkMint(params, outputs, serial_context, generate);
