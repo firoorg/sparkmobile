@@ -1,6 +1,7 @@
 #include "../include/spark.h"
 #include "spark.h"
 #include <limits>
+#include <new>
 #include <utility>
 //#include "../bitcoin/amount.h"
 //#include <iostream>
@@ -580,7 +581,9 @@ void ParseSparkMintTransaction(const std::vector<CScript>& scripts, spark::MintT
     }
     try {
         mintTransaction.setMintTransaction(serializedCoins);
-    } catch (...) {
+    } catch (const std::bad_alloc &) {
+        throw;
+    } catch (const std::exception &) {
         throw std::invalid_argument("Unable to deserialize Spark mint transaction");
     }
 }
@@ -603,7 +606,9 @@ void ParseSparkMintCoin(const CScript& script, spark::Coin& txCoin)
 
     try {
         stream >> txCoin;
-    } catch (...) {
+    } catch (const std::bad_alloc &) {
+        throw;
+    } catch (const std::exception &) {
         throw std::invalid_argument("Unable to deserialize Spark mint");
     }
 }
