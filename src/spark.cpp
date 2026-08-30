@@ -511,7 +511,7 @@ spark::IdentifiedCoinData identifyCoin(spark::Coin coin, const spark::IncomingVi
 void getSparkSpendScripts(const spark::FullViewKey& fullViewKey,
                           const spark::SpendKey& spendKey,
                           const std::vector<spark::InputCoinData>& inputs,
-                          const std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data,
+                          const std::unordered_map<uint64_t, spark::CoverSetData>& cover_set_data,
                           const std::map<uint64_t, uint256>& idAndBlockHashes,
                           CAmount fee,
                           uint64_t transparentOut,
