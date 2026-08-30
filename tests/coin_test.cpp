@@ -1,7 +1,8 @@
-#include "../src/coin.h"
+#include "../src/primitives.h"
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>
+#include <unordered_set>
 
 namespace spark {
 
@@ -71,6 +72,16 @@ BOOST_AUTO_TEST_CASE(mint_identify_recover)
         params->get_F()*r_data.s + full_view_key.get_D()
     );
     BOOST_CHECK_EQUAL(r_data.T*r_data.s + full_view_key.get_D(), params->get_U());
+
+    Coin different_value = coin;
+    different_value.v++;
+    BOOST_CHECK(coin != different_value);
+    BOOST_CHECK(coin.getHash() != different_value.getHash());
+
+    std::unordered_set<Coin, CoinHash> distinct_coins;
+    distinct_coins.insert(coin);
+    distinct_coins.insert(different_value);
+    BOOST_CHECK_EQUAL(distinct_coins.size(), 2);
 }
 
 BOOST_AUTO_TEST_CASE(spend_identify_recover)
@@ -118,6 +129,16 @@ BOOST_AUTO_TEST_CASE(spend_identify_recover)
         params->get_F()*r_data.s + full_view_key.get_D()
     );
     BOOST_CHECK_EQUAL(r_data.T*r_data.s + full_view_key.get_D(), params->get_U());
+
+    Coin same_serialized_coin = coin;
+    same_serialized_coin.v = v + 1;
+    BOOST_CHECK(coin == same_serialized_coin);
+    BOOST_CHECK(coin.getHash() == same_serialized_coin.getHash());
+
+    std::unordered_set<Coin, CoinHash> equivalent_coins;
+    equivalent_coins.insert(coin);
+    equivalent_coins.insert(same_serialized_coin);
+    BOOST_CHECK_EQUAL(equivalent_coins.size(), 1);
 }
 
 BOOST_AUTO_TEST_CASE(rejects_short_recipient_memo_payloads)

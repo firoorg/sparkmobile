@@ -115,7 +115,7 @@ public:
     bool operator==(const Coin& other) const;
     bool operator!=(const Coin& other) const;
 
-    // type and v are not included in hash
+    // Hash of serialized coin fields; serial context and spend value are external.
     uint256 getHash() const;
 
     void setParams(const Params* params);
