@@ -73,7 +73,7 @@ bool SpendKey::operator==(const SpendKey& other) const {
     return true;
 }
 
-FullViewKey::FullViewKey() {}
+FullViewKey::FullViewKey() : params(Params::get_default()) {}
 FullViewKey::FullViewKey(const Params* params) {
     this->params = params;
 }
@@ -142,7 +142,7 @@ uint64_t IncomingViewKey::get_diversifier(const std::vector<unsigned char>& d) c
 	return i;
 }
 
-Address::Address() {}
+Address::Address() : params(Params::get_default()) {}
 
 Address::Address(const Params* params) {
     this->params = params;

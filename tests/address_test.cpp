@@ -100,6 +100,26 @@ BOOST_AUTO_TEST_CASE(correctness)
     BOOST_CHECK_EQUAL_COLLECTIONS(address.get_d().begin(), address.get_d().end(), decoded.get_d().begin(), decoded.get_d().end());
     BOOST_CHECK_EQUAL(address.get_Q1(), decoded.get_Q1());
     BOOST_CHECK_EQUAL(address.get_Q2(), decoded.get_Q2());
+
+    Scalar message(uint64_t(1));
+    OwnershipProof proof;
+    address.prove_own(message, spend_key, incoming_view_key, proof);
+    BOOST_CHECK(decoded.verify_own(message, proof));
+}
+
+BOOST_AUTO_TEST_CASE(full_view_key_deserialization_uses_default_params)
+{
+    const Params* params = Params::get_default();
+    FullViewKey original{SpendKey(params)};
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    stream << original;
+
+    FullViewKey decoded;
+    stream >> decoded;
+    IncomingViewKey incoming(decoded);
+
+    BOOST_CHECK(decoded.get_params() == params);
+    BOOST_CHECK_NO_THROW(Address(incoming, 12345));
 }
 
 // Check that a bad checksum fails
