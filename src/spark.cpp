@@ -30,11 +30,15 @@ spark::IncomingViewKey createIncomingViewKey(const spark::FullViewKey& fullViewK
 }
 
 template <typename Iterator>
-static uint64_t CalculateSparkCoinsBalance(Iterator begin, Iterator end)
+static CAmount CalculateSparkCoinsBalance(Iterator begin, Iterator end)
 {
-    uint64_t balance = 0;
+    CAmount balance = 0;
     for (auto start = begin; start != end; ++start) {
-        balance += start->v;
+        if (start->v > static_cast<uint64_t>(MAX_MONEY) ||
+                static_cast<CAmount>(start->v) > MAX_MONEY - balance) {
+            throw std::invalid_argument("Spark coin amount is out of range");
+        }
+        balance += static_cast<CAmount>(start->v);
     }
     return balance;
 }
@@ -85,6 +89,10 @@ bool GetCoinsToSpend(
         std::list<CSparkMintMeta> coins,
         int64_t& changeToMint)
 {
+    if (!MoneyRange(required)) {
+        throw std::invalid_argument("Spark spend amount is out of range");
+    }
+
     CAmount availableBalance = CalculateSparkCoinsBalance(coins.begin(), coins.end());
 
     if (required > availableBalance) {

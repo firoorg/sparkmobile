@@ -54,6 +54,33 @@ BOOST_AUTO_TEST_CASE(rejects_invalid_mint_amounts)
         std::invalid_argument);
 }
 
+BOOST_AUTO_TEST_CASE(rejects_invalid_wallet_coin_amounts)
+{
+    std::vector<CSparkMintMeta> selected;
+    int64_t change = 0;
+
+    CSparkMintMeta invalid;
+    invalid.v = std::numeric_limits<uint64_t>::max();
+    BOOST_CHECK_EXCEPTION(
+        GetCoinsToSpend(1, selected, {invalid}, change),
+        std::invalid_argument,
+        [](const std::invalid_argument& error) {
+            return std::string(error.what()) ==
+                "Spark coin amount is out of range";
+        });
+
+    CSparkMintMeta maximum;
+    maximum.v = MAX_MONEY;
+    CSparkMintMeta extra;
+    extra.v = 1;
+    BOOST_CHECK_THROW(
+        GetCoinsToSpend(1, selected, {maximum, extra}, change),
+        std::invalid_argument);
+    BOOST_CHECK_THROW(
+        GetCoinsToSpend(-1, selected, {}, change),
+        std::invalid_argument);
+}
+
 BOOST_AUTO_TEST_CASE(mintCoinTest)
 {
     auto* params = spark::Params::get_default();
