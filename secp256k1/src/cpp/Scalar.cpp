@@ -14,6 +14,7 @@
 #include <array>
 #include <sstream>
 #include <iostream>
+#include <stdexcept>
 #include <openssl/rand.h>
 
 namespace secp_primitives {
@@ -55,6 +56,7 @@ Scalar::Scalar(const Scalar& other)
 }
 
 Scalar::~Scalar() {
+    secp256k1_scalar_clear(reinterpret_cast<secp256k1_scalar *>(value_));
     delete reinterpret_cast<secp256k1_scalar *>(value_);
 }
 
@@ -214,7 +216,7 @@ Scalar& Scalar::randomize() {
 
     do {
         if (RAND_bytes(temp, 32) != 1) {
-            throw "Unable to generate random Scalar";
+            throw std::runtime_error("Unable to generate random Scalar");
         }
         generate(temp);
     } while (!this->isMember()); // we need to ensure, generated value is valid and non 0
@@ -256,7 +258,7 @@ Scalar Scalar::hash(const unsigned char* data, size_t len) {
     secp256k1_scalar result;
     secp256k1_scalar_set_b32(&result,hash,&overflow);
     if (overflow) {
-     throw "Scalar: hashing overflowed";
+     throw std::runtime_error("Scalar: hashing overflowed");
     }
     Scalar result_(&result);
     result_.mod_p();
@@ -292,7 +294,7 @@ unsigned const char* Scalar::deserialize(unsigned const char* buffer) {
     secp256k1_scalar_set_b32(reinterpret_cast<secp256k1_scalar *>(value_), buffer, &overflow);
 
     if (overflow) {
-        throw "Scalar: decoding overflowed";
+        throw std::runtime_error("Scalar: decoding overflowed");
     }
 
     return buffer + 32;
@@ -314,7 +316,7 @@ std::string Scalar::GetHex() const {
 
 void Scalar::SetHex(const std::string& str) {
     if (str.size() != 64) {
-        throw "Scalar: decoding invalid length";
+        throw std::runtime_error("Scalar: decoding invalid length");
     }
 
     std::array<unsigned char, 32> buffer;
@@ -325,7 +327,7 @@ void Scalar::SetHex(const std::string& str) {
         if (::isxdigit(hexs[0]) && ::isxdigit(hexs[1])) {
             buffer[i] = strtol(hexs.c_str(), NULL, 16);
         } else {
-            throw "Scalar: decoding invalid hex";
+            throw std::runtime_error("Scalar: decoding invalid hex");
         }
     }
 
@@ -334,7 +336,7 @@ void Scalar::SetHex(const std::string& str) {
     secp256k1_scalar_set_b32(reinterpret_cast<secp256k1_scalar *>(value_), buffer.data(), &overflow);
 
     if (overflow) {
-        throw "Scalar: decoding overflowed";
+        throw std::runtime_error("Scalar: decoding overflowed");
     }
 }
 

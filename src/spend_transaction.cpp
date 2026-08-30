@@ -4,8 +4,19 @@ namespace spark {
 
 // Generate a spend transaction that consumes existing coins and generates new ones
 SpendTransaction::SpendTransaction(
-        const Params* params) {
-    this->params = params;
+        const Params* params,
+        SpendTransactionVersion version,
+        std::size_t expected_output_count) :
+        params(params),
+        version(version),
+        expected_output_count(expected_output_count),
+        f(0),
+        vout(0),
+        extension_commitment() {
+	if (version != SpendTransactionVersion::V1 &&
+		version != SpendTransactionVersion::V2) {
+		throw std::invalid_argument("Unsupported Spark spend version");
+	}
 }
 
 SpendTransaction::SpendTransaction(
@@ -16,14 +27,53 @@ SpendTransaction::SpendTransaction(
     const std::unordered_map<uint64_t, CoverSetData>& cover_set_data,
 	const uint64_t f,
     const uint64_t vout,
-	const std::vector<OutputCoinData>& outputs
+	const std::vector<OutputCoinData>& outputs,
+    SpendTransactionVersion version,
+    const uint256& extension_commitment,
+    const std::map<uint64_t, uint256>& block_hashes
 ) {
 	this->params = params;
+	this->version = version;
+	this->expected_output_count = outputs.size();
+	if (version != SpendTransactionVersion::V1 &&
+		version != SpendTransactionVersion::V2) {
+		throw std::invalid_argument("Unsupported Spark spend version");
+	}
+	if (version == SpendTransactionVersion::V1 &&
+		!extension_commitment.IsNull()) {
+		throw std::invalid_argument(
+			"Spark V1 cannot bind an extension commitment");
+	}
+	this->set_id_blockHash = block_hashes;
+	if (version == SpendTransactionVersion::V2) {
+		std::set<uint64_t> referenced_ids;
+		for (const auto& input : inputs) {
+			if (input.cover_set_id == 0 ||
+				input.cover_set_id > static_cast<uint64_t>(
+					std::numeric_limits<int32_t>::max())) {
+				throw std::invalid_argument("Bad Spark V2 cover-set id");
+			}
+			referenced_ids.insert(input.cover_set_id);
+		}
+		if (block_hashes.size() != referenced_ids.size()) {
+			throw std::invalid_argument("Missing Spark V2 cover-set reference");
+		}
+		for (uint64_t id : referenced_ids) {
+			if (block_hashes.count(id) == 0) {
+				throw std::invalid_argument("Missing Spark V2 cover-set reference");
+			}
+		}
+	}
 
 	// Size parameters
 	const std::size_t w = inputs.size(); // number of consumed coins
 	const std::size_t t = outputs.size(); // number of generated coins
 	const std::size_t N = (std::size_t) std::pow(params->get_n_grootle(), params->get_m_grootle()); // size of cover sets
+	if (version == SpendTransactionVersion::V2 &&
+		(w == 0 || w > MAX_CHAUM_V2_INPUTS ||
+		 t == 0 || t > MAX_SPARK_V2_OUTPUTS)) {
+		throw std::invalid_argument("Bad Spark V2 dimensions");
+	}
 
 	// Prepare input-related vectors
 	this->cover_set_ids.reserve(w); // cover set data and metadata
@@ -35,6 +85,11 @@ SpendTransaction::SpendTransaction(
 
 	this->f = f; // fee
     this->vout = vout; // transparent output value
+	this->extension_commitment = extension_commitment;
+
+	if (vout > 0 && f > std::numeric_limits<uint64_t>::max() - vout) {
+		throw std::invalid_argument("fee + vout overflow");
+	}
 
 	// Prepare Chaum vectors
 	std::vector<Scalar> chaum_x, chaum_y, chaum_z;
@@ -196,15 +251,65 @@ SpendTransaction::SpendTransaction(
 		this->params->get_H(),
 		this->params->get_U()
 	);
-	chaum.prove(
-		mu,
-		chaum_x,
-		chaum_y,
-		chaum_z,
-		this->S1,
-		this->T,
-		this->chaum_proof
-	);
+	if (version == SpendTransactionVersion::V2) {
+		chaum.prove_v2(
+			mu,
+			GetChaumV2Context(
+				this->out_coins,
+				f,
+				vout,
+				this->extension_commitment,
+				this->cover_set_ids,
+				this->set_id_blockHash),
+			chaum_x,
+			chaum_y,
+			chaum_z,
+			this->S1,
+			this->T,
+			this->chaum_proof_v2
+		);
+	} else {
+		chaum.prove_v1(
+			mu,
+			chaum_x,
+			chaum_y,
+			chaum_z,
+			this->S1,
+			this->T,
+			this->chaum_proof_v1
+		);
+	}
+}
+
+ChaumV2Context SpendTransaction::GetChaumV2Context(
+        const std::vector<Coin>& out_coins,
+        uint64_t fee,
+        uint64_t transparent_value,
+        const uint256& extension_commitment,
+        const std::vector<uint64_t>& cover_set_ids,
+        const std::map<uint64_t, uint256>& block_hashes) {
+    ChaumV2Context context;
+    context.fee = fee;
+    context.transparent_value = transparent_value;
+    context.extension_commitment = extension_commitment;
+    CDataStream references(SER_NETWORK, PROTOCOL_VERSION);
+    WriteCompactSize(references, cover_set_ids.size());
+    for (const uint64_t id : cover_set_ids) {
+        references << id;
+    }
+    WriteCompactSize(references, block_hashes.size());
+    for (const auto& entry : block_hashes) {
+        references << entry.first << entry.second;
+    }
+    context.serialized_cover_set_references.assign(
+        references.begin(), references.end());
+    context.serialized_outputs.reserve(out_coins.size());
+    for (const auto& coin : out_coins) {
+        CDataStream encoded(SER_NETWORK, PROTOCOL_VERSION);
+        encoded << coin;
+        context.serialized_outputs.emplace_back(encoded.begin(), encoded.end());
+    }
+    return context;
 }
 
 uint64_t SpendTransaction::getFee() {
@@ -231,13 +336,43 @@ bool SpendTransaction::verify(
 	return verify(transaction.params, transactions, cover_sets);
 }
 
+bool SpendTransaction::verifyHistorical(
+        const SpendTransaction& transaction,
+        const std::unordered_map<uint64_t, std::vector<Coin>>& cover_sets) {
+	if (transaction.version != SpendTransactionVersion::V1) {
+		return false;
+	}
+	std::vector<SpendTransaction> transactions = { transaction };
+	return verifyHistorical(transaction.params, transactions, cover_sets);
+}
+
+bool SpendTransaction::verify(
+        const Params* params,
+        const std::vector<SpendTransaction>& transactions,
+        const std::unordered_map<uint64_t, std::vector<Coin>>& cover_sets) {
+	return verify(params, transactions, cover_sets, true);
+}
+
+bool SpendTransaction::verifyHistorical(
+        const Params* params,
+        const std::vector<SpendTransaction>& transactions,
+        const std::unordered_map<uint64_t, std::vector<Coin>>& cover_sets) {
+	for (const auto& transaction : transactions) {
+		if (transaction.version != SpendTransactionVersion::V1) {
+			return false;
+		}
+	}
+	return verify(params, transactions, cover_sets, false);
+}
+
 // Determine if a set of spend transactions is collectively valid
 // NOTE: This assumes that the relationship between a `cover_set_id` and the provided `cover_set` is already valid and canonical!
 // NOTE: This assumes that validity criteria relating to chain context have been externally checked!
 bool SpendTransaction::verify(
         const Params* params,
         const std::vector<SpendTransaction>& transactions,
-        const std::unordered_map<uint64_t, std::vector<Coin>>& cover_sets) {
+        const std::unordered_map<uint64_t, std::vector<Coin>>& cover_sets,
+        bool require_single_input) {
 	// The idea here is to perform batching as broadly as possible
 	// - Grootle proofs can be batched if they share a (partial) cover set
 	// - Range proofs can always be batched arbitrarily
@@ -250,10 +385,12 @@ bool SpendTransaction::verify(
 
 	// Track cover sets across Grootle proofs to batch
 	std::unordered_map<uint64_t, std::vector<std::pair<std::size_t, std::size_t>>> grootle_buckets;
+	const std::size_t N = (std::size_t) std::pow(
+		params->get_n_grootle(), params->get_m_grootle());
 
 	// Process each transaction
 	for (std::size_t i = 0; i < transactions.size(); i++) {
-		SpendTransaction tx = transactions[i];
+		const SpendTransaction& tx = transactions[i];
 
 		// Assert common parameters
 		if (params != tx.params) {
@@ -263,22 +400,31 @@ bool SpendTransaction::verify(
 		// Size parameters for this transaction
 		const std::size_t w = tx.cover_set_ids.size(); // number of consumed coins
 		const std::size_t t = tx.out_coins.size(); // number of generated coins
-		const std::size_t N = (std::size_t) std::pow(params->get_n_grootle(), params->get_m_grootle()); // size of cover sets
+
+		if (w == 0 ||
+			(tx.version == SpendTransactionVersion::V2 &&
+			 w > MAX_CHAUM_V2_INPUTS) ||
+			(tx.version == SpendTransactionVersion::V1 &&
+			 require_single_input && w != 1)) {
+			return false;
+		}
+		if (tx.version == SpendTransactionVersion::V2 &&
+			(t == 0 || t > MAX_SPARK_V2_OUTPUTS ||
+			 t != tx.expected_output_count)) {
+			return false;
+		}
+
+		if (tx.vout > 0 && tx.f > std::numeric_limits<uint64_t>::max() - tx.vout) {
+			return false;
+		}
 
 		// Consumed coin semantics
 		if (tx.S1.size() != w ||
 			tx.C1.size() != w ||
 			tx.T.size() != w ||
-			tx.grootle_proofs.size() != w,
+			tx.grootle_proofs.size() != w ||
 			tx.cover_set_sizes.size() != tx.cover_set_representations.size()) {
 			throw std::invalid_argument("Bad spend transaction semantics");
-		}
-
-		// Cover set semantics
-		for (const auto& set : cover_sets) {
-			if (set.second.size() > N) {
-				throw std::invalid_argument("Bad spend transaction semantics");
-			}
 		}
 
 		// Store range proof with commitments
@@ -315,7 +461,24 @@ bool SpendTransaction::verify(
 			tx.params->get_H(),
 			tx.params->get_U()
 		);
-		if (!chaum.verify(mu, tx.S1, tx.T, tx.chaum_proof)) {
+		const bool chaum_valid = tx.version == SpendTransactionVersion::V2
+			? chaum.verify_v2(
+				mu,
+				GetChaumV2Context(
+					tx.out_coins,
+					tx.f,
+					tx.vout,
+					tx.extension_commitment,
+					tx.cover_set_ids,
+					tx.set_id_blockHash),
+				tx.S1,
+				tx.T,
+				tx.chaum_proof_v2)
+			: (require_single_input
+				? chaum.verify_single_input(mu, tx.S1, tx.T, tx.chaum_proof_v1)
+				: chaum.verify_v1(
+					mu, tx.S1, tx.T, tx.chaum_proof_v1));
+		if (!chaum_valid) {
 			return false;
 		}
 
@@ -351,7 +514,6 @@ bool SpendTransaction::verify(
 	}
 
 	// Verify all Grootle proofs in batches (based on cover set)
-	// TODO: Finish this
 	Grootle grootle(
 		params->get_H(),
 		params->get_G_grootle(),
@@ -359,9 +521,9 @@ bool SpendTransaction::verify(
 		params->get_n_grootle(),
 		params->get_m_grootle()
 	);
-	for (auto grootle_bucket : grootle_buckets) {
-		std::size_t cover_set_id = grootle_bucket.first;
-		std::vector<std::pair<std::size_t, std::size_t>> proof_indexes = grootle_bucket.second;
+	for (const auto& grootle_bucket : grootle_buckets) {
+		const uint64_t cover_set_id = grootle_bucket.first;
+		const auto& proof_indexes = grootle_bucket.second;
 
 		// Build the proof statement and metadata vectors from these proofs
 		std::vector<GroupElement> S, S1, V, V1;
@@ -369,16 +531,23 @@ bool SpendTransaction::verify(
 		std::vector<std::size_t> sizes;
 		std::vector<GrootleProof> proofs;
 
-        std::size_t full_cover_set_size = cover_sets.at(cover_set_id).size();
+		const auto cover_set_it = cover_sets.find(cover_set_id);
+		if (cover_set_it == cover_sets.end()) {
+			throw std::invalid_argument("Cover set missing");
+		}
+		const auto& cover_set = cover_set_it->second;
+		if (cover_set.size() > N) {
+			throw std::invalid_argument("Bad spend transaction semantics");
+		}
+
+		std::size_t full_cover_set_size = cover_set.size();
         for (std::size_t i = 0; i < full_cover_set_size; i++) {
-            S.emplace_back(cover_sets.at(cover_set_id)[i].S);
-            V.emplace_back(cover_sets.at(cover_set_id)[i].C);
+            S.emplace_back(cover_set[i].S);
+            V.emplace_back(cover_set[i].C);
         }
 
-		for (auto proof_index : proof_indexes) {
+        for (const auto& proof_index : proof_indexes) {
             const auto& tx = transactions[proof_index.first];
-            if (!cover_sets.count(cover_set_id))
-                throw std::invalid_argument("Cover set missing");
 			// Because we assume all proofs in this list share a monotonic cover set, the largest such set is the one to use for verification
             if (!tx.cover_set_sizes.count(cover_set_id))
                 throw std::invalid_argument("Cover set size missing");

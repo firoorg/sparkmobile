@@ -8,17 +8,17 @@
 
 struct CSparkMintMeta
 {
-    int nHeight;
-    int nId;
-    bool isUsed;
+    int nHeight{0};
+    int nId{0};
+    bool isUsed{false};
     uint256 txid;
-    uint64_t i; // diversifier
+    uint64_t i{0}; // diversifier
     std::vector<unsigned char> d; // encrypted diversifier
-    uint64_t v; // value
+    uint64_t v{0}; // value
     Scalar k; // nonce
     std::string memo; // memo
     std::vector<unsigned char> serial_context;
-    char type;
+    char type{spark::COIN_TYPE_MINT};
     spark::Coin coin;
     mutable boost::optional<uint256> nonceHash;
 
@@ -71,6 +71,7 @@ public:
     {
         lTag = GroupElement();
         lTagHash = uint256();
+        hashTx = uint256();
         amount = 0;
     }
 
@@ -93,12 +94,12 @@ namespace primitives {
 namespace spark {
 // Custom hash for the spark coin. norte. THIS IS NOT SECURE HASH FUNCTION
 struct CoinHash {
-    std::size_t operator()(const spark::Coin& coin) const noexcept;
+    std::size_t operator()(const spark::Coin& coin) const;
 };
 
 // Custom hash for the linking tag. THIS IS NOT SECURE HASH FUNCTION
 struct CLTagHash {
-    std::size_t operator()(const secp_primitives::GroupElement& tag) const noexcept;
+    std::size_t operator()(const secp_primitives::GroupElement& tag) const;
 };
 
 struct CMintedCoinInfo {

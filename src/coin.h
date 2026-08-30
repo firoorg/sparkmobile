@@ -12,6 +12,29 @@ namespace spark {
 
 using namespace secp_primitives;
 
+namespace detail {
+
+template <typename Stream, typename Operation, typename Container>
+inline void ReadWriteFixedSize(
+        Stream& s,
+        Operation ser_action,
+        Container& value,
+        std::size_t expected_size) {
+    if (!ser_action.ForRead()) {
+        ::Serialize(s, value);
+        return;
+    }
+
+    const uint64_t size = ReadCompactSize(s);
+    if (size != expected_size) {
+        throw std::ios_base::failure("wrong recipient data size");
+    }
+    value.resize(expected_size);
+    s.read(reinterpret_cast<char*>(value.data()), expected_size);
+}
+
+} // namespace detail
+
 // Flags for coin types: those generated from mints, and those generated from spends
 const char COIN_TYPE_MINT = 0;
 const char COIN_TYPE_SPEND = 1;
@@ -39,9 +62,11 @@ struct MintCoinRecipientData {
 
 	template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(d);
+		detail::ReadWriteFixedSize(s, ser_action, d, AES_BLOCKSIZE);
 		READWRITE(k);
-		READWRITE(padded_memo);
+		detail::ReadWriteFixedSize(
+			s, ser_action, padded_memo,
+			Params::get_default()->get_memo_bytes() + 1);
     }
 };
 
@@ -57,9 +82,11 @@ struct SpendCoinRecipientData {
 	template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(v);
-        READWRITE(d);
+		detail::ReadWriteFixedSize(s, ser_action, d, AES_BLOCKSIZE);
 		READWRITE(k);
-		READWRITE(padded_memo);
+		detail::ReadWriteFixedSize(
+			s, ser_action, padded_memo,
+			Params::get_default()->get_memo_bytes() + 1);
     }
 };
 
@@ -88,7 +115,7 @@ public:
     bool operator==(const Coin& other) const;
     bool operator!=(const Coin& other) const;
 
-    // type and v are not included in hash
+    // Hash of serialized coin fields; serial context and spend value are external.
     uint256 getHash() const;
 
     void setParams(const Params* params);

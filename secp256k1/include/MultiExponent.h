@@ -10,6 +10,7 @@ namespace secp_primitives {
 class MultiExponent {
 public:
     MultiExponent(const MultiExponent& other);
+    MultiExponent& operator=(const MultiExponent&) = delete;
     MultiExponent(const std::vector<GroupElement>& generators, const std::vector<Scalar>& powers);
     ~MultiExponent();
 

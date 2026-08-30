@@ -1,5 +1,6 @@
 #include "keys.h"
 #include "../bitcoin/hash.h"
+#include "../bitcoin/support/cleanse.h"
 #include "transcript.h"
 
 namespace spark {
@@ -16,28 +17,28 @@ SpendKey::SpendKey(const Params* params) {
 SpendKey::SpendKey(const Params* params, const Scalar& r_) {
     this->params = params;
     this->r = r_;
-    std::vector<unsigned char> data;
-    data.resize(32);
+    std::vector<unsigned char> data(32);
     r.serialize(data.data());
-    std::vector<unsigned char> result(CSHA256().OUTPUT_SIZE);
+    std::vector<unsigned char> result(CSHA256::OUTPUT_SIZE);
 
     CHash256 hash256;
     std::string prefix1 = "s1_generation";
     hash256.Write(reinterpret_cast<const unsigned char*>(prefix1.c_str()), prefix1.size());
     hash256.Write(data.data(), data.size());
-    hash256.Finalize(&result[0]);
-    this->s1.memberFromSeed(&result[0]);
+    hash256.Finalize(result.data());
+    this->s1.memberFromSeed(result.data());
 
-    data.clear();
-    result = std::vector<unsigned char>(CSHA256().OUTPUT_SIZE);
     hash256.Reset();
-    s1.serialize(data.data());
 
+    // The deployed s2 seed commits only to this prefix. The historical code
+    // cleared its buffer here, so adding s1 now would change existing keys.
     std::string prefix2 = "s2_generation";
     hash256.Write(reinterpret_cast<const unsigned char*>(prefix2.c_str()), prefix2.size());
-    hash256.Write(data.data(), data.size());
-    hash256.Finalize(&result[0]);
-    this->s2.memberFromSeed(&result[0]);
+    hash256.Finalize(result.data());
+    this->s2.memberFromSeed(result.data());
+
+    memory_cleanse(data.data(), data.size());
+    memory_cleanse(result.data(), result.size());
 }
 
 const Params* SpendKey::get_params() const {
@@ -57,6 +58,7 @@ const Scalar& SpendKey::get_r() const {
 }
 
 SpendKey& SpendKey::operator=(const SpendKey& other) {
+    this->params = other.params;
     this->s1 = other.s1;
     this->s2 = other.s2;
     this->r = other.r;
@@ -71,7 +73,7 @@ bool SpendKey::operator==(const SpendKey& other) const {
     return true;
 }
 
-FullViewKey::FullViewKey() {}
+FullViewKey::FullViewKey() : params(Params::get_default()) {}
 FullViewKey::FullViewKey(const Params* params) {
     this->params = params;
 }
@@ -140,7 +142,7 @@ uint64_t IncomingViewKey::get_diversifier(const std::vector<unsigned char>& d) c
 	return i;
 }
 
-Address::Address() {}
+Address::Address() : params(Params::get_default()) {}
 
 Address::Address(const Params* params) {
     this->params = params;
@@ -153,6 +155,10 @@ Address::Address(const IncomingViewKey& incoming_view_key, const uint64_t i) {
 	this->d = SparkUtils::diversifier_encrypt(key, i);
 	this->Q1 = SparkUtils::hash_div(this->d)*incoming_view_key.get_s1();
 	this->Q2 = this->params->get_F()*SparkUtils::hash_Q2(incoming_view_key.get_s1(), i) + incoming_view_key.get_P2();
+
+	if (this->Q1.isInfinity() || this->Q2.isInfinity()) {
+		throw std::invalid_argument("Bad address key");
+	}
 }
 
 const Params* Address::get_params() const {
@@ -212,8 +218,8 @@ unsigned char Address::decode(const std::string& str) {
 		throw std::invalid_argument("Bad address encoding");
 	}
 
-	// Check the encoding prefix
-	if (decoded.hrp[0] != ADDRESS_ENCODING_PREFIX) {
+	// Check the encoding prefix and network identifier
+	if (decoded.hrp.size() != 2 || decoded.hrp[0] != ADDRESS_ENCODING_PREFIX) {
 		throw std::invalid_argument("Bad address prefix");
 	}
 
@@ -222,7 +228,9 @@ unsigned char Address::decode(const std::string& str) {
 
 	// Convert the address components to bytes
 	std::vector<uint8_t> scrambled;
-	bech32::convertbits(scrambled, decoded.data, 5, 8, false);
+	if (!bech32::convertbits(scrambled, decoded.data, 5, 8, false)) {
+		throw std::invalid_argument("Bad address encoding");
+	}
 
 	// Assert the proper address size
 	if (scrambled.size() != 2 * GroupElement::serialize_size + AES_BLOCKSIZE) {
@@ -237,9 +245,22 @@ unsigned char Address::decode(const std::string& str) {
 
 	std::vector<unsigned char> component(raw.begin() + AES_BLOCKSIZE, raw.begin() + AES_BLOCKSIZE + GroupElement::serialize_size);
 	this->Q1.deserialize(component.data());
+	std::vector<unsigned char> canonical(GroupElement::serialize_size);
+	this->Q1.serialize(canonical.data());
+	if (component != canonical) {
+		throw std::invalid_argument("Bad address key encoding");
+	}
 	
 	component = std::vector<unsigned char>(raw.begin() + AES_BLOCKSIZE + GroupElement::serialize_size, raw.end());
 	this->Q2.deserialize(component.data());
+	this->Q2.serialize(canonical.data());
+	if (component != canonical) {
+		throw std::invalid_argument("Bad address key encoding");
+	}
+
+	if (this->Q1.isInfinity() || this->Q2.isInfinity()) {
+		throw std::invalid_argument("Bad address key");
+	}
 
 	return network;
 }

@@ -11,31 +11,29 @@ const unsigned char FLAG_VECTOR = 2;
 const unsigned char FLAG_CHALLENGE = 3;
 
 // Initialize a transcript with a domain separator
-Transcript::Transcript(const std::string domain) {
-    // Prepare the state
-    this->ctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(this->ctx, EVP_sha512(), NULL);
+Transcript::Transcript(const std::string domain) : ctx(MakeDigestContext()) {
+    CheckOpenSSL(EVP_DigestInit_ex(this->ctx.get(), EVP_sha512(), NULL));
 
     // Write the protocol and mode information
     std::vector<unsigned char> protocol(LABEL_PROTOCOL.begin(), LABEL_PROTOCOL.end());
-    EVP_DigestUpdate(this->ctx, protocol.data(), protocol.size());
-    EVP_DigestUpdate(this->ctx, &HASH_MODE_TRANSCRIPT, sizeof(HASH_MODE_TRANSCRIPT));
+    CheckOpenSSL(EVP_DigestUpdate(this->ctx.get(), protocol.data(), protocol.size()));
+    CheckOpenSSL(EVP_DigestUpdate(this->ctx.get(), &HASH_MODE_TRANSCRIPT, sizeof(HASH_MODE_TRANSCRIPT)));
 
     // Domain separator
     include_flag(FLAG_DOMAIN);
     include_label(domain);
 }
 
-Transcript::~Transcript() {
-    EVP_MD_CTX_free(this->ctx);
-}
+Transcript::~Transcript() = default;
 
 Transcript& Transcript::operator=(const Transcript& t) {
     if (this == &t) {
         return *this;
     }
 
-    EVP_MD_CTX_copy_ex(this->ctx, t.ctx);
+    auto copied_ctx = MakeDigestContext();
+    CheckOpenSSL(EVP_MD_CTX_copy_ex(copied_ctx.get(), t.ctx.get()));
+    this->ctx.swap(copied_ctx);
 
     return *this;
 }
@@ -95,6 +93,17 @@ void Transcript::add(const std::string label, const std::vector<unsigned char>& 
     include_data(data);
 }
 
+void Transcript::add(
+        const std::string label,
+        const std::vector<std::vector<unsigned char>>& data) {
+    include_flag(FLAG_VECTOR);
+    size(data.size());
+    include_label(label);
+    for (const auto& value : data) {
+        include_data(value);
+    }
+}
+
 // Produce a challenge
 Scalar Transcript::challenge(const std::string label) {
     // Ensure we can properly populate a scalar
@@ -106,37 +115,31 @@ Scalar Transcript::challenge(const std::string label) {
     hash.resize(EVP_MD_size(EVP_sha512()));
     unsigned char counter = 0;
 
-    EVP_MD_CTX* state_counter;
-    state_counter = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(state_counter, EVP_sha512(), NULL);
-
-    EVP_MD_CTX* state_finalize;
-    state_finalize = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(state_finalize, EVP_sha512(), NULL);
+    auto state_counter = MakeDigestContext();
+    auto state_finalize = MakeDigestContext();
+    CheckOpenSSL(EVP_DigestInit_ex(state_counter.get(), EVP_sha512(), NULL));
+    CheckOpenSSL(EVP_DigestInit_ex(state_finalize.get(), EVP_sha512(), NULL));
 
     include_flag(FLAG_CHALLENGE);
     include_label(label);
 
     while (1) {
         // Prepare temporary state for counter testing
-        EVP_MD_CTX_copy_ex(state_counter, this->ctx);
+        CheckOpenSSL(EVP_MD_CTX_copy_ex(state_counter.get(), this->ctx.get()));
 
         // Embed the counter
-        EVP_DigestUpdate(state_counter, &counter, sizeof(counter));
+        CheckOpenSSL(EVP_DigestUpdate(state_counter.get(), &counter, sizeof(counter)));
 
         // Finalize the hash with a temporary state
-        EVP_MD_CTX_copy_ex(state_finalize, state_counter);
+        CheckOpenSSL(EVP_MD_CTX_copy_ex(state_finalize.get(), state_counter.get()));
         unsigned int TEMP; // We already know the digest length!
-        EVP_DigestFinal_ex(state_finalize, hash.data(), &TEMP);
+        CheckOpenSSL(EVP_DigestFinal_ex(state_finalize.get(), hash.data(), &TEMP));
 
         // Check for scalar validity
         Scalar candidate;
         try {
             candidate.deserialize(hash.data());
-            EVP_MD_CTX_copy_ex(this->ctx, state_counter);
-
-            EVP_MD_CTX_free(state_counter);
-            EVP_MD_CTX_free(state_finalize);
+            this->ctx.swap(state_counter);
 
             return candidate;
         } catch (const std::exception &) {
@@ -151,12 +154,12 @@ void Transcript::size(const std::size_t size_) {
     std::vector<unsigned char> size_data;
     size_data.resize(SCALAR_ENCODING);
     size_scalar.serialize(size_data.data());
-    EVP_DigestUpdate(this->ctx, size_data.data(), size_data.size());
+    CheckOpenSSL(EVP_DigestUpdate(this->ctx.get(), size_data.data(), size_data.size()));
 }
 
 // Include a flag
 void Transcript::include_flag(const unsigned char flag) {
-    EVP_DigestUpdate(this->ctx, &flag, sizeof(flag));
+    CheckOpenSSL(EVP_DigestUpdate(this->ctx.get(), &flag, sizeof(flag)));
 }
 
 // Encode and include a label
@@ -171,7 +174,7 @@ void Transcript::include_data(const std::vector<unsigned char>& data) {
     size(data.size());
 
     // Include data
-    EVP_DigestUpdate(this->ctx, data.data(), data.size());
+    CheckOpenSSL(EVP_DigestUpdate(this->ctx.get(), data.data(), data.size()));
 }
 
 }

@@ -4,7 +4,6 @@
 #include "../secp256k1/include/Scalar.h"
 #include "../secp256k1/include/GroupElement.h"
 #include "../bitcoin/serialize.h"
-#include "../bitcoin/sync.h"
 
 using namespace secp_primitives;
 
@@ -38,10 +37,6 @@ private:
         const std::size_t n_grootle,
         const std::size_t m_grootle
     );
-
-private:
-    static CCriticalSection cs_instance;
-    static std::unique_ptr<Params> instance;
 
     // Global generators
     GroupElement F;

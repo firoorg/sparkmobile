@@ -4,47 +4,16 @@
 
 namespace spark {
 
-    CCriticalSection Params::cs_instance;
-    std::unique_ptr<Params> Params::instance;
-
 // Protocol parameters for deployment
 Params const* Params::get_default() {
-    if (instance) {
-        return instance.get();
-    } else {
-        LOCK(cs_instance);
-        if (instance) {
-            return instance.get();
-        }
-
-        std::size_t memo_bytes = 31; // 32 bytes after length prepending!
-        std::size_t max_M_range = 16;
-        std::size_t n_grootle = 8;
-        std::size_t m_grootle = 5;
-
-        instance.reset(new Params(memo_bytes, max_M_range, n_grootle, m_grootle));
-        return instance.get();
-    }
+    static const Params params(31, 16, 8, 5);
+    return &params;
 }
 
 // Protocol parameters for testing
 Params const* Params::get_test() {
-    if (instance) {
-        return instance.get();
-    } else {
-        LOCK(cs_instance);
-        if (instance) {
-            return instance.get();
-        }
-
-        std::size_t memo_bytes = 31; // 32 bytes after length prepending!
-        std::size_t max_M_range = 16;
-        std::size_t n_grootle = 2;
-        std::size_t m_grootle = 4;
-
-        instance.reset(new Params(memo_bytes, max_M_range, n_grootle, m_grootle));
-        return instance.get();
-    }
+    static const Params params(31, 16, 2, 4);
+    return &params;
 }
 
 Params::Params(

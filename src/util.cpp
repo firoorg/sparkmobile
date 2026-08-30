@@ -1,4 +1,5 @@
 #include "util.h"
+#include "openssl_util.h"
 
 namespace spark {
 
@@ -25,7 +26,9 @@ std::vector<unsigned char> SparkUtils::diversifier_encrypt(const std::vector<uns
     std::vector<unsigned char> plaintext;
     plaintext.insert(plaintext.begin(), i_stream.begin(), i_stream.end());
     plaintext.resize(AES_BLOCKSIZE);
-    aes.Encrypt(plaintext.data(), i_stream.size(), ciphertext.data());
+    if (aes.Encrypt(plaintext.data(), i_stream.size(), ciphertext.data()) != AES_BLOCKSIZE) {
+        throw std::runtime_error("Unable to encrypt diversifier");
+    }
 
     return ciphertext;
 }
@@ -72,43 +75,39 @@ GroupElement SparkUtils::hash_generator(const std::string label) {
         throw std::runtime_error("Bad hash size!");
     }
 
-    EVP_MD_CTX* ctx;
-    ctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(ctx, EVP_sha512(), NULL);
+    auto ctx = MakeDigestContext();
+    CheckOpenSSL(EVP_DigestInit_ex(ctx.get(), EVP_sha512(), NULL));
 
     // Write the protocol and mode
     std::vector<unsigned char> protocol(LABEL_PROTOCOL.begin(), LABEL_PROTOCOL.end());
-    EVP_DigestUpdate(ctx, protocol.data(), protocol.size());
-    EVP_DigestUpdate(ctx, &HASH_MODE_GROUP_GENERATOR, sizeof(HASH_MODE_GROUP_GENERATOR));
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), protocol.data(), protocol.size()));
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), &HASH_MODE_GROUP_GENERATOR, sizeof(HASH_MODE_GROUP_GENERATOR)));
 
     // Write the label
     std::vector<unsigned char> bytes(label.begin(), label.end());
-    EVP_DigestUpdate(ctx, bytes.data(), bytes.size());
+    CheckOpenSSL(EVP_DigestUpdate(ctx.get(), bytes.data(), bytes.size()));
 
     std::vector<unsigned char> hash;
     hash.resize(EVP_MD_size(EVP_sha512()));
     unsigned char counter = 0;
 
-    EVP_MD_CTX* state_counter;
-    state_counter = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(state_counter, EVP_sha512(), NULL);
-
-    EVP_MD_CTX* state_finalize;
-    state_finalize = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(state_finalize, EVP_sha512(), NULL);
+    auto state_counter = MakeDigestContext();
+    auto state_finalize = MakeDigestContext();
+    CheckOpenSSL(EVP_DigestInit_ex(state_counter.get(), EVP_sha512(), NULL));
+    CheckOpenSSL(EVP_DigestInit_ex(state_finalize.get(), EVP_sha512(), NULL));
 
     // Finalize the hash
     while (1) {
         // Prepare temporary state for counter testing
-        EVP_MD_CTX_copy_ex(state_counter, ctx);
+        CheckOpenSSL(EVP_MD_CTX_copy_ex(state_counter.get(), ctx.get()));
 
         // Embed the counter
-        EVP_DigestUpdate(state_counter, &counter, sizeof(counter));
+        CheckOpenSSL(EVP_DigestUpdate(state_counter.get(), &counter, sizeof(counter)));
 
         // Finalize the hash with a temporary state
-        EVP_MD_CTX_copy_ex(state_finalize, state_counter);
+        CheckOpenSSL(EVP_MD_CTX_copy_ex(state_finalize.get(), state_counter.get()));
         unsigned int TEMP; // We already know the digest length!
-        EVP_DigestFinal_ex(state_finalize, hash.data(), &TEMP);
+        CheckOpenSSL(EVP_DigestFinal_ex(state_finalize.get(), hash.data(), &TEMP));
 
         // Assemble the serialized input:
 		//	bytes 0..31: x coordinate
@@ -126,10 +125,6 @@ GroupElement SparkUtils::hash_generator(const std::string label) {
                 counter++;
                 continue;
             }
-
-            EVP_MD_CTX_free(ctx);
-            EVP_MD_CTX_free(state_counter);
-            EVP_MD_CTX_free(state_finalize);
 
             return candidate;
         } catch (const std::exception &) {

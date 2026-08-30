@@ -32,7 +32,7 @@ sparkmobile/
 ├── bitcoin/               # Bitcoin Core utilities (serialization, crypto, script)
 │   ├── crypto/            # AES, SHA256, HMAC-SHA256/512
 │   └── support/           # Memory cleanse, allocators
-├── secp256k1/             # Git submodule - libsecp256k1 (elliptic curve crypto)
+├── secp256k1/             # Vendored libsecp256k1 source (elliptic curve crypto)
 ├── tests/                 # Boost.Test unit tests (one per module)
 ├── build                  # Build script (bash)
 ├── run_all_tests          # Test runner script (bash)
@@ -56,7 +56,9 @@ sparkmobile/
 # Example: ./build bin
 ```
 
-First run configures and compiles the secp256k1 submodule, then compiles all test binaries into `<output_dir>/`. Subsequent runs skip secp256k1 if the directory already exists.
+The build configures the vendored secp256k1 library when its build files are missing, updates it with `make`, then compiles the shared Spark sources once and links all test binaries into `<output_dir>/`.
+
+Set `BOOST_TEST_LIB` when the platform uses a suffixed Boost.Test library name, for example `BOOST_TEST_LIB=boost_unit_test_framework-mt` on MSYS2.
 
 ### Running Tests
 
@@ -76,10 +78,10 @@ Runs all 16 test suites sequentially. Individual tests can also be run directly:
 
 ### Compilation Pattern
 
-Every test binary compiles all sources together (no separate library step):
+The build compiles the shared sources into a static library, then links each test binary against it:
 
 ```
-g++ tests/<test>.cpp src/*.cpp bitcoin/*.cpp bitcoin/support/*.cpp bitcoin/crypto/*.cpp \
+g++ tests/<test>.cpp <output_dir>/libsparkmobile.a \
   -g -Isecp256k1/include secp256k1/.libs/libsecp256k1.a \
   -lssl -lcrypto -lpthread -lboost_unit_test_framework -std=c++17 -o <dir>/<binary>
 ```
@@ -134,7 +136,7 @@ Defined in `include/spark.h`:
 
 ## Common Pitfalls
 
-- The secp256k1 submodule must be initialized (`git submodule update --init`) before building
+- secp256k1 is vendored in this repository and does not require submodule initialization
 - The build script requires an output directory argument; it won't build without one
-- All source files are compiled together for each test binary (no incremental builds)
+- Shared sources are rebuilt on each invocation; `make` updates secp256k1 when its sources change
 - The `bitcoin/` directory contains adapted Bitcoin Core code, not a full Bitcoin dependency

@@ -1,6 +1,6 @@
 #ifndef FIRO_SPARK_TRANSCRIPT_H
 #define FIRO_SPARK_TRANSCRIPT_H
-#include <openssl/evp.h>
+#include "openssl_util.h"
 #include "util.h"
 
 namespace spark {
@@ -10,6 +10,7 @@ using namespace secp_primitives;
 class Transcript {
 public:
     Transcript(const std::string);
+    Transcript(const Transcript&) = delete;
     Transcript& operator=(const Transcript&);
     ~Transcript();
     void add(const std::string, const Scalar&);
@@ -17,6 +18,7 @@ public:
     void add(const std::string, const GroupElement&);
     void add(const std::string, const std::vector<GroupElement>&);
     void add(const std::string, const std::vector<unsigned char>&);
+    void add(const std::string, const std::vector<std::vector<unsigned char>>&);
     Scalar challenge(const std::string);
 
 private:
@@ -24,7 +26,7 @@ private:
     void include_flag(const unsigned char);
     void include_label(const std::string);
     void include_data(const std::vector<unsigned char>&);
-    EVP_MD_CTX* ctx;
+    EVP_MD_CTX_ptr ctx;
 };
 
 }

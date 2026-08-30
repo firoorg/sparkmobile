@@ -32,7 +32,7 @@ uint256 GetSparkCoinHash(const spark::Coin& coin) {
 
 namespace spark {
 
-std::size_t CoinHash::operator ()(const spark::Coin& coin) const noexcept {
+std::size_t CoinHash::operator ()(const spark::Coin& coin) const {
     uint256 hash = primitives::GetSparkCoinHash(coin);
 
     std::size_t result;
@@ -40,7 +40,7 @@ std::size_t CoinHash::operator ()(const spark::Coin& coin) const noexcept {
     return result;
 }
 
-std::size_t CLTagHash::operator ()(const secp_primitives::GroupElement& tag) const noexcept {
+std::size_t CLTagHash::operator ()(const secp_primitives::GroupElement& tag) const {
     uint256 hash = primitives::GetLTagHash(tag);
 
     std::size_t result;

@@ -1,4 +1,5 @@
 #include "aead.h"
+#include "openssl_util.h"
 
 namespace spark {
 
@@ -21,25 +22,21 @@ AEADEncryptedData AEAD::encrypt(const GroupElement& prekey, const std::string ad
 	iv.resize(AEAD_IV_SIZE);
 
 	// Set up the cipher
-	EVP_CIPHER_CTX* ctx;
-	ctx = EVP_CIPHER_CTX_new();
-	EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), NULL, key.data(), iv.data());
+	auto ctx = MakeCipherContext();
+	CheckOpenSSL(EVP_EncryptInit_ex(ctx.get(), EVP_chacha20_poly1305(), NULL, key.data(), iv.data()));
 
 	// Include the associated data
 	std::vector<unsigned char> additional_data_bytes(additional_data.begin(), additional_data.end());
-	EVP_EncryptUpdate(ctx, NULL, &TEMP, additional_data_bytes.data(), additional_data_bytes.size());
+	CheckOpenSSL(EVP_EncryptUpdate(ctx.get(), NULL, &TEMP, additional_data_bytes.data(), additional_data_bytes.size()));
 
 	// Encrypt the plaintext
 	result.ciphertext.resize(data.size());
-	EVP_EncryptUpdate(ctx, result.ciphertext.data(), &TEMP, reinterpret_cast<unsigned char *>(data.data()), data.size());
-	EVP_EncryptFinal_ex(ctx, NULL, &TEMP);
+	CheckOpenSSL(EVP_EncryptUpdate(ctx.get(), result.ciphertext.data(), &TEMP, reinterpret_cast<unsigned char *>(data.data()), data.size()));
+	CheckOpenSSL(EVP_EncryptFinal_ex(ctx.get(), NULL, &TEMP));
 
 	// Get the tag
 	result.tag.resize(AEAD_TAG_SIZE);
-	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, AEAD_TAG_SIZE, result.tag.data());
-
-	// Clean up
-	EVP_CIPHER_CTX_free(ctx);
+	CheckOpenSSL(EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_AEAD_GET_TAG, AEAD_TAG_SIZE, result.tag.data()));
 
 	return result;
 }
@@ -48,6 +45,10 @@ AEADEncryptedData AEAD::encrypt(const GroupElement& prekey, const std::string ad
 // NOTE: This uses a fixed zero nonce, which is safe when used in Spark as directed
 // It is NOT safe in general to do this!
 CDataStream AEAD::decrypt_and_verify(const GroupElement& prekey, const std::string additional_data, AEADEncryptedData& data) {
+    if (data.tag.size() != AEAD_TAG_SIZE) {
+        throw std::runtime_error("Bad AEAD tag size");
+    }
+
     // Assert that the key commitment is valid
     std::vector<unsigned char> key_commitment = SparkUtils::commit_aead(prekey);
     if (key_commitment != data.key_commitment) {
@@ -68,24 +69,22 @@ CDataStream AEAD::decrypt_and_verify(const GroupElement& prekey, const std::stri
 	iv.resize(AEAD_IV_SIZE);
 
 	// Set up the cipher
-	EVP_CIPHER_CTX* ctx;
-	ctx = EVP_CIPHER_CTX_new();
-	EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), NULL, key.data(), iv.data());
+	auto ctx = MakeCipherContext();
+	CheckOpenSSL(EVP_DecryptInit_ex(ctx.get(), EVP_chacha20_poly1305(), NULL, key.data(), iv.data()));
 
 	// Include the associated data
 	std::vector<unsigned char> additional_data_bytes(additional_data.begin(), additional_data.end());
-	EVP_DecryptUpdate(ctx, NULL, &TEMP, additional_data_bytes.data(), additional_data_bytes.size());
+	CheckOpenSSL(EVP_DecryptUpdate(ctx.get(), NULL, &TEMP, additional_data_bytes.data(), additional_data_bytes.size()));
 
 	// Decrypt the ciphertext
 	result.resize(data.ciphertext.size());
-	EVP_DecryptUpdate(ctx, reinterpret_cast<unsigned char *>(result.data()), &TEMP, data.ciphertext.data(), data.ciphertext.size());
+	CheckOpenSSL(EVP_DecryptUpdate(ctx.get(), reinterpret_cast<unsigned char *>(result.data()), &TEMP, data.ciphertext.data(), data.ciphertext.size()));
 	
 	// Set the expected tag
-	EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, AEAD_TAG_SIZE, data.tag.data());
+	CheckOpenSSL(EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_AEAD_SET_TAG, AEAD_TAG_SIZE, data.tag.data()));
 
 	// Decrypt and clean up
-	int ret = EVP_DecryptFinal_ex(ctx, NULL, &TEMP);
-	EVP_CIPHER_CTX_free(ctx);
+	int ret = EVP_DecryptFinal_ex(ctx.get(), NULL, &TEMP);
 	if (ret != 1) {
 		throw std::runtime_error("Bad AEAD authentication");
 	}

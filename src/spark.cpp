@@ -1,10 +1,10 @@
 #include "../include/spark.h"
 #include "spark.h"
+#include <limits>
+#include <new>
+#include <utility>
 //#include "../bitcoin/amount.h"
 //#include <iostream>
-
-#define SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION     (10000 * COIN)
-
 
 spark::SpendKey createSpendKey(const SpendKeyData& data) {
     std::string nCountStr = std::to_string(data.getIndex());
@@ -18,8 +18,8 @@ spark::SpendKey createSpendKey(const SpendKeyData& data) {
 
     secp_primitives::Scalar r;
     r.memberFromSeed(hash);
-    spark::SpendKey key(spark::Params::get_default(), r);
-    return key;
+    memory_cleanse(hash, sizeof(hash));
+    return spark::SpendKey(spark::Params::get_default(), r);
 }
 
 spark::FullViewKey createFullViewKey(const spark::SpendKey& spendKey) {
@@ -31,11 +31,15 @@ spark::IncomingViewKey createIncomingViewKey(const spark::FullViewKey& fullViewK
 }
 
 template <typename Iterator>
-static uint64_t CalculateSparkCoinsBalance(Iterator begin, Iterator end)
+static CAmount CalculateSparkCoinsBalance(Iterator begin, Iterator end)
 {
-    uint64_t balance = 0;
+    CAmount balance = 0;
     for (auto start = begin; start != end; ++start) {
-        balance += start->v;
+        if (start->v > static_cast<uint64_t>(MAX_MONEY) ||
+                static_cast<CAmount>(start->v) > MAX_MONEY - balance) {
+            throw std::invalid_argument("Spark coin amount is out of range");
+        }
+        balance += static_cast<CAmount>(start->v);
     }
     return balance;
 }
@@ -45,6 +49,15 @@ std::vector<CRecipient> createSparkMintRecipients(
                         const std::vector<unsigned char>& serial_context,
                         bool generate)
 {
+    CAmount total = 0;
+    for (const auto& output : outputs) {
+        if (output.v > static_cast<uint64_t>(MAX_MONEY) ||
+                static_cast<CAmount>(output.v) > MAX_MONEY - total) {
+            throw std::invalid_argument("Spark mint amount is out of range");
+        }
+        total += static_cast<CAmount>(output.v);
+    }
+
     const spark::Params* params = spark::Params::get_default();
 
     spark::MintTransaction sparkMint(params, outputs, serial_context, generate);
@@ -77,6 +90,10 @@ bool GetCoinsToSpend(
         std::list<CSparkMintMeta> coins,
         int64_t& changeToMint)
 {
+    if (!MoneyRange(required)) {
+        throw std::invalid_argument("Spark spend amount is out of range");
+    }
+
     CAmount availableBalance = CalculateSparkCoinsBalance(coins.begin(), coins.end());
 
     if (required > availableBalance) {
@@ -138,28 +155,67 @@ std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(
         std::list<CSparkMintMeta> coins,
         std::size_t mintNum,
         std::size_t utxoNum,
-        std::size_t additionalTxSize) {
+        std::size_t additionalTxSize,
+        spark::SpendTransactionVersion version) {
+    if (version != spark::SpendTransactionVersion::V1 &&
+        version != spark::SpendTransactionVersion::V2) {
+        throw std::invalid_argument("Unsupported Spark spend version");
+    }
+
     CFeeRate fRate;
 
     CAmount fee;
-    unsigned size;
     int64_t changeToMint = 0; // this value can be negative, that means we need to spend remaining part of required value with another transaction (nMaxInputPerTransaction exceeded)
+
+    if (!MoneyRange(required)) {
+        throw std::invalid_argument("Spark spend amount is out of range");
+    }
 
     std::vector<CSparkMintMeta> spendCoins;
     for (fee = fRate.GetFeePerK();;) {
         CAmount currentRequired = required;
 
-        if (!subtractFeeFromAmount)
+        if (!MoneyRange(fee)) {
+            throw std::invalid_argument("Spark spend fee is out of range");
+        }
+        if (!subtractFeeFromAmount) {
+            if (fee > MAX_MONEY - currentRequired) {
+                throw std::invalid_argument("Spark spend amount plus fee is out of range");
+            }
             currentRequired += fee;
+        }
         spendCoins.clear();
         if (!GetCoinsToSpend(currentRequired, spendCoins, coins, changeToMint)) {
             throw std::invalid_argument("Unable to select cons for spend");
         }
 
-        // 1803 is for first grootle proof/aux data
-        // 213 for each private output, 34 for each utxo,924 constant parts of tx parts of tx,
-        size = 924 + 1803*(spendCoins.size()) + 322*(mintNum+1) + 34 * utxoNum + additionalTxSize;
-        CAmount feeNeeded = size;
+        if (version == spark::SpendTransactionVersion::V2 &&
+            (spendCoins.empty() || spendCoins.size() > spark::MAX_CHAUM_V2_INPUTS)) {
+            throw std::invalid_argument("Bad Spark V2 input count");
+        }
+
+        uint64_t estimatedSize = 924;
+        const auto addEstimatedSize = [&estimatedSize](
+                uint64_t bytesPerItem,
+                std::size_t itemCount) {
+            if (itemCount >
+                (std::numeric_limits<unsigned int>::max() - estimatedSize) /
+                    bytesPerItem) {
+                throw std::invalid_argument("Spark spend size estimate is out of range");
+            }
+            estimatedSize += bytesPerItem * itemCount;
+        };
+        addEstimatedSize(1803, spendCoins.size());
+        addEstimatedSize(322, mintNum);
+        addEstimatedSize(322, 1);
+        addEstimatedSize(34, utxoNum);
+        addEstimatedSize(1, additionalTxSize);
+        if (version == spark::SpendTransactionVersion::V2) {
+            addEstimatedSize(32, 1);
+            if (spendCoins.size() > 1)
+                addEstimatedSize(98, spendCoins.size() - 1);
+        }
+        CAmount feeNeeded = static_cast<unsigned int>(estimatedSize);
 
         if (fee >= feeNeeded) {
             break;
@@ -196,14 +252,26 @@ void createSparkSpendTransaction(
         const std::vector<std::pair<CAmount, bool>>& recipients,
         const std::vector<std::pair<spark::OutputCoinData, bool>>& privateRecipients,
         std::list<CSparkMintMeta> coins,
-        const std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data_all,
+        const std::unordered_map<uint64_t, spark::CoverSetData>& cover_set_data_all,
         const std::map<uint64_t, uint256>& idAndBlockHashes_all,
         const uint256& txHashSig,
         std::size_t additionalTxSize,
+        spark::SpendTransactionVersion version,
+        const uint256& extensionCommitment,
         CAmount &fee,
         std::vector<uint8_t>& serializedSpend,
         std::vector<std::vector<unsigned char>>& outputScripts,
         std::vector<CSparkMintMeta>& spentCoinsOut) {
+
+    if (version != spark::SpendTransactionVersion::V1 &&
+        version != spark::SpendTransactionVersion::V2) {
+        throw std::invalid_argument("Unsupported Spark spend version");
+    }
+
+    if (version == spark::SpendTransactionVersion::V1 &&
+        !extensionCommitment.IsNull()) {
+        throw std::invalid_argument("Spark V1 cannot bind an extension commitment");
+    }
 
     if (recipients.empty() && privateRecipients.empty()) {
         throw std::runtime_error("Either recipients or newMints has to be nonempty.");
@@ -220,7 +288,8 @@ void createSparkSpendTransaction(
     for (size_t i = 0; i < recipients.size(); i++) {
         auto& recipient = recipients[i];
 
-        if (!MoneyRange(recipient.first)) {
+        if (!MoneyRange(recipient.first) ||
+            recipient.first > MAX_MONEY - vOut) {
             throw std::runtime_error("Recipient has invalid amount");
         }
 
@@ -232,35 +301,53 @@ void createSparkSpendTransaction(
     }
 
     for (const auto& privRecipient : privateRecipients) {
-        mintVOut += privRecipient.first.v;
+        if (privRecipient.first.v > static_cast<uint64_t>(MAX_MONEY) ||
+            static_cast<CAmount>(privRecipient.first.v) >
+                MAX_MONEY - mintVOut) {
+            throw std::runtime_error("Private recipient has invalid amount");
+        }
+        mintVOut += static_cast<CAmount>(privRecipient.first.v);
         if (privRecipient.second) {
             recipientsToSubtractFee++;
         }
     }
 
-    if (vOut > SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION)
-        throw std::runtime_error("Spend to transparent address limit exceeded (10,000 Firo per transaction).");
+    if (mintVOut > MAX_MONEY - vOut) {
+        throw std::runtime_error("Spark spend output amount is out of range");
+    }
 
     std::pair<CAmount, std::vector<CSparkMintMeta>> estimated =
-            SelectSparkCoins(vOut + mintVOut, recipientsToSubtractFee, coins, privateRecipients.size(), recipients.size(), additionalTxSize);
+            SelectSparkCoins(vOut + mintVOut, recipientsToSubtractFee, std::move(coins), privateRecipients.size(), recipients.size(), additionalTxSize, version);
+
+    if (version == spark::SpendTransactionVersion::V1 &&
+        estimated.second.size() != 1) {
+        throw std::invalid_argument("Spark V1 spends require exactly one input");
+    }
 
     auto recipients_ = recipients;
     auto privateRecipients_ = privateRecipients;
     {
         bool remainderSubtracted = false;
         fee = estimated.first;
+        const CAmount feePerRecipient = recipientsToSubtractFee > 0
+            ? fee / recipientsToSubtractFee
+            : 0;
+        const CAmount feeRemainder = recipientsToSubtractFee > 0
+            ? fee % recipientsToSubtractFee
+            : 0;
         for (size_t i = 0; i < recipients_.size(); i++) {
             auto &recipient = recipients_[i];
 
             if (recipient.second) {
-                // Subtract fee equally from each selected recipient.
-                recipient.first -= fee / recipientsToSubtractFee;
-
+                CAmount feeToSubtract = feePerRecipient;
                 if (!remainderSubtracted) {
-                    // First receiver pays the remainder not divisible by output count.
-                    recipient.first -= fee % recipientsToSubtractFee;
-                    remainderSubtracted = true;
+                    feeToSubtract += feeRemainder;
                 }
+                if (recipient.first <= feeToSubtract) {
+                    throw std::runtime_error("Recipient amount is too small after fee deduction");
+                }
+                recipient.first -= feeToSubtract;
+                remainderSubtracted = true;
             }
         }
 
@@ -268,25 +355,25 @@ void createSparkSpendTransaction(
             auto &privateRecipient = privateRecipients_[i];
 
             if (privateRecipient.second) {
-                // Subtract fee equally from each selected recipient.
-                privateRecipient.first.v -= fee / recipientsToSubtractFee;
-
+                CAmount feeToSubtract = feePerRecipient;
                 if (!remainderSubtracted) {
-                    // First receiver pays the remainder not divisible by output count.
-                    privateRecipient.first.v -= fee % recipientsToSubtractFee;
-                    remainderSubtracted = true;
+                    feeToSubtract += feeRemainder;
                 }
+                if (privateRecipient.first.v <=
+                    static_cast<uint64_t>(feeToSubtract)) {
+                    throw std::runtime_error("Private recipient amount is too small after fee deduction");
+                }
+                privateRecipient.first.v -= static_cast<uint64_t>(feeToSubtract);
+                remainderSubtracted = true;
             }
         }
 
     }
 
     const spark::Params* params = spark::Params::get_default();
-    if (spendKey == spark::SpendKey(params))
-        throw std::runtime_error("Invalid pend key.");
 
     CAmount spendInCurrentTx = 0;
-    for (auto& spendCoin : estimated.second)
+    for (const auto& spendCoin : estimated.second)
         spendInCurrentTx += spendCoin.v;
     spendInCurrentTx -= fee;
 
@@ -332,10 +419,8 @@ void createSparkSpendTransaction(
     // clear vExtraPayload to calculate metadata hash correctly
     serializedSpend.clear();
 
-    // We will write this into cover set representation, with anonymity set hash
-    uint256 sig = txHashSig;
-
     std::vector<spark::InputCoinData> inputs;
+    inputs.reserve(estimated.second.size());
     std::map<uint64_t, uint256> idAndBlockHashes;
     std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data;
     for (auto& coin : estimated.second) {
@@ -345,11 +430,16 @@ void createSparkSpendTransaction(
                 throw std::runtime_error("No such coin in set in input data");
             cover_set_data[groupId] = cover_set_data_all.at(groupId);
             idAndBlockHashes[groupId] = idAndBlockHashes_all.at(groupId);
-            cover_set_data[groupId].cover_set_representation.insert(cover_set_data[groupId].cover_set_representation.end(), sig.begin(), sig.end());
+            if (version == spark::SpendTransactionVersion::V2 &&
+                cover_set_data[groupId].cover_set_representation.size() != txHashSig.size()) {
+                throw std::runtime_error("Spark V2 cover set representation must be 32 bytes");
+            }
+            cover_set_data[groupId].cover_set_representation.insert(cover_set_data[groupId].cover_set_representation.end(), txHashSig.begin(), txHashSig.end());
 
         }
 
-        spark::InputCoinData inputCoinData;
+        inputs.emplace_back();
+        spark::InputCoinData& inputCoinData = inputs.back();
         inputCoinData.cover_set_id = groupId;
         std::size_t index = 0;
         if (!getIndex(coin.coin, cover_set_data[groupId].cover_set, index))
@@ -368,28 +458,37 @@ void createSparkSpendTransaction(
 
         inputCoinData.T = recoveredCoinData.T;
         inputCoinData.s = recoveredCoinData.s;
-        inputs.push_back(inputCoinData);
     }
 
-    spark::SpendTransaction spendTransaction(params, fullViewKey, spendKey, inputs, cover_set_data, fee, transparentOut, privOutputs);
-    spendTransaction.setBlockHashes(idAndBlockHashes);
+    spark::SpendTransaction spendTransaction(
+        params,
+        fullViewKey,
+        spendKey,
+        inputs,
+        cover_set_data,
+        fee,
+        transparentOut,
+        privOutputs,
+        version,
+        extensionCommitment,
+        idAndBlockHashes);
     CDataStream serialized(SER_NETWORK, PROTOCOL_VERSION);
     serialized << spendTransaction;
     serializedSpend.assign(serialized.begin(), serialized.end());
 
     outputScripts.clear();
     const std::vector<spark::Coin>& outCoins = spendTransaction.getOutCoins();
-    for (auto& outCoin : outCoins) {
+    for (const auto& outCoin : outCoins) {
         // construct spend script
         CDataStream serialized(SER_NETWORK, PROTOCOL_VERSION);
         serialized << outCoin;
         std::vector<unsigned char> script;
         script.push_back((unsigned char)OP_SPARKSMINT);
         script.insert(script.end(), serialized.begin(), serialized.end());
-        outputScripts.emplace_back(script);
+        outputScripts.emplace_back(std::move(script));
     }
 
-        spentCoinsOut = estimated.second;
+    spentCoinsOut = std::move(estimated.second);
 }
 
 spark::Address getAddress(const spark::IncomingViewKey& incomingViewKey, const uint64_t diversifier)
@@ -412,18 +511,37 @@ spark::IdentifiedCoinData identifyCoin(spark::Coin coin, const spark::IncomingVi
 void getSparkSpendScripts(const spark::FullViewKey& fullViewKey,
                           const spark::SpendKey& spendKey,
                           const std::vector<spark::InputCoinData>& inputs,
-                          const std::unordered_map<uint64_t, spark::CoverSetData> cover_set_data,
+                          const std::unordered_map<uint64_t, spark::CoverSetData>& cover_set_data,
                           const std::map<uint64_t, uint256>& idAndBlockHashes,
                           CAmount fee,
                           uint64_t transparentOut,
                           const std::vector<spark::OutputCoinData>& privOutputs,
+                          spark::SpendTransactionVersion version,
+                          const uint256& extensionCommitment,
                           std::vector<uint8_t>& inputScript, std::vector<std::vector<unsigned char>>& outputScripts)
 {
+    if (version == spark::SpendTransactionVersion::V1 && inputs.size() != 1)
+        throw std::invalid_argument("Spark V1 spends require exactly one input");
+    if (version == spark::SpendTransactionVersion::V1 &&
+        !extensionCommitment.IsNull()) {
+        throw std::invalid_argument("Spark V1 cannot bind an extension commitment");
+    }
+
     inputScript.clear();
     outputScripts.clear();
     const auto* params = spark::Params::get_default();
-    spark::SpendTransaction spendTransaction(params, fullViewKey, spendKey, inputs, cover_set_data, fee, transparentOut, privOutputs);
-    spendTransaction.setBlockHashes(idAndBlockHashes);
+    spark::SpendTransaction spendTransaction(
+        params,
+        fullViewKey,
+        spendKey,
+        inputs,
+        cover_set_data,
+        fee,
+        transparentOut,
+        privOutputs,
+        version,
+        extensionCommitment,
+        idAndBlockHashes);
     CDataStream serialized(SER_NETWORK, PROTOCOL_VERSION);
     serialized << spendTransaction;
 
@@ -463,7 +581,9 @@ void ParseSparkMintTransaction(const std::vector<CScript>& scripts, spark::MintT
     }
     try {
         mintTransaction.setMintTransaction(serializedCoins);
-    } catch (...) {
+    } catch (const std::bad_alloc &) {
+        throw;
+    } catch (const std::exception &) {
         throw std::invalid_argument("Unable to deserialize Spark mint transaction");
     }
 }
@@ -486,27 +606,25 @@ void ParseSparkMintCoin(const CScript& script, spark::Coin& txCoin)
 
     try {
         stream >> txCoin;
-    } catch (...) {
+    } catch (const std::bad_alloc &) {
+        throw;
+    } catch (const std::exception &) {
         throw std::invalid_argument("Unable to deserialize Spark mint");
     }
 }
 
 CSparkMintMeta getMetadata(const spark::Coin& coin, const spark::IncomingViewKey& incoming_view_key) {
     CSparkMintMeta meta;
-    spark::IdentifiedCoinData identifiedCoinData;
-    try {
-        identifiedCoinData = identifyCoin(coin, incoming_view_key);
-    } catch (...) {
-        return meta;
-    }
+    const spark::IdentifiedCoinData identifiedCoinData =
+        identifyCoin(coin, incoming_view_key);
 
-    meta.isUsed = false;
     meta.v = identifiedCoinData.v;
     meta.memo = identifiedCoinData.memo;
     meta.d = identifiedCoinData.d;
     meta.i = identifiedCoinData.i;
     meta.k = identifiedCoinData.k;
-    meta.serial_context = {};
+    meta.serial_context = coin.serial_context;
+    meta.type = coin.type;
     meta.coin = coin;
 
     return meta;
@@ -515,12 +633,8 @@ CSparkMintMeta getMetadata(const spark::Coin& coin, const spark::IncomingViewKey
 spark::InputCoinData getInputData(spark::Coin coin, const spark::FullViewKey& full_view_key, const spark::IncomingViewKey& incoming_view_key)
 {
     spark::InputCoinData inputCoinData;
-    spark::IdentifiedCoinData identifiedCoinData;
-    try {
-        identifiedCoinData = identifyCoin(coin, incoming_view_key);
-    } catch (...) {
-        return inputCoinData;
-    }
+    const spark::IdentifiedCoinData identifiedCoinData =
+        identifyCoin(coin, incoming_view_key);
 
     spark::RecoveredCoinData recoveredCoinData = coin.recover(full_view_key, identifiedCoinData);
     inputCoinData.T = recoveredCoinData.T;

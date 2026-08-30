@@ -1,6 +1,5 @@
 #ifndef FIRO_SPARK_AEAD_H
 #define FIRO_SPARK_AEAD_H
-#include <openssl/evp.h>
 #include "util.h"
 
 namespace spark {
