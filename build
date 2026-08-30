@@ -46,7 +46,7 @@ tests=(
   "f4grumble_test spark_f4grumble_tests"
   "grootle_test spark_grootle_tests"
   "mint_transaction_test spark_mint_transaction_tests"
-  "schnorr_test spark_schnoor_tests"
+  "schnorr_test spark_schnorr_tests"
   "spend_transaction_test spark_spend_transaction_tests"
   "transcript_test spark_transcript_tests"
   "full_test full_test"

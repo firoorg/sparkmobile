@@ -23,7 +23,7 @@ tests=(
   spark_chaum_tests
   spark_encrypt_tests
   spark_f4grumble_tests
-  spark_schnoor_tests
+  spark_schnorr_tests
   spark_grootle_tests
   spark_mint_transaction_tests
   spark_spend_transaction_tests
