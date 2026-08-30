@@ -27,6 +27,14 @@ BOOST_AUTO_TEST_CASE(rejects_missing_spend_key_data)
     BOOST_CHECK_THROW(SpendKeyData(nullptr), std::invalid_argument);
 }
 
+BOOST_AUTO_TEST_CASE(spend_entry_reset_clears_transaction_hash)
+{
+    CSparkSpendEntry entry;
+    entry.hashTx = uint256S("01");
+    entry.SetNull();
+    BOOST_CHECK(entry.hashTx.IsNull());
+}
+
 BOOST_AUTO_TEST_CASE(rejects_invalid_mint_amounts)
 {
     const Params* params = Params::get_default();

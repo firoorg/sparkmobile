@@ -71,6 +71,7 @@ public:
     {
         lTag = GroupElement();
         lTagHash = uint256();
+        hashTx = uint256();
         amount = 0;
     }
 
