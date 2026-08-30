@@ -141,6 +141,12 @@ BOOST_AUTO_TEST_CASE(spend_identify_recover)
     BOOST_CHECK_EQUAL(equivalent_coins.size(), 1);
 }
 
+BOOST_AUTO_TEST_CASE(hash_errors_remain_recoverable)
+{
+    Coin incomplete;
+    BOOST_CHECK_THROW(CoinHash()(incomplete), std::invalid_argument);
+}
+
 BOOST_AUTO_TEST_CASE(rejects_short_recipient_memo_payloads)
 {
     const Params* params = Params::get_default();

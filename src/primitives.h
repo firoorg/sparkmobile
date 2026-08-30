@@ -93,12 +93,12 @@ namespace primitives {
 namespace spark {
 // Custom hash for the spark coin. norte. THIS IS NOT SECURE HASH FUNCTION
 struct CoinHash {
-    std::size_t operator()(const spark::Coin& coin) const noexcept;
+    std::size_t operator()(const spark::Coin& coin) const;
 };
 
 // Custom hash for the linking tag. THIS IS NOT SECURE HASH FUNCTION
 struct CLTagHash {
-    std::size_t operator()(const secp_primitives::GroupElement& tag) const noexcept;
+    std::size_t operator()(const secp_primitives::GroupElement& tag) const;
 };
 
 struct CMintedCoinInfo {
