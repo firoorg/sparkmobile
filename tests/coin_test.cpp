@@ -161,6 +161,24 @@ BOOST_AUTO_TEST_CASE(rejects_short_recipient_memo_payloads)
     BOOST_CHECK_THROW(spend.identify(incoming_view_key), std::runtime_error);
 }
 
+BOOST_AUTO_TEST_CASE(rejects_oversized_recipient_fields_before_allocation)
+{
+    CDataStream mint_stream(SER_NETWORK, PROTOCOL_VERSION);
+    WriteCompactSize(mint_stream, MAX_SIZE);
+    MintCoinRecipientData mint_data;
+    BOOST_CHECK_THROW(mint_stream >> mint_data, std::ios_base::failure);
+    BOOST_CHECK(mint_data.d.empty());
+
+    CDataStream spend_stream(SER_NETWORK, PROTOCOL_VERSION);
+    spend_stream << uint64_t(1);
+    spend_stream << std::vector<unsigned char>(AES_BLOCKSIZE);
+    spend_stream << Scalar();
+    WriteCompactSize(spend_stream, MAX_SIZE);
+    SpendCoinRecipientData spend_data;
+    BOOST_CHECK_THROW(spend_stream >> spend_data, std::ios_base::failure);
+    BOOST_CHECK(spend_data.padded_memo.empty());
+}
+
 BOOST_AUTO_TEST_CASE(rejects_invalid_recipient_keys)
 {
     const Params* params = Params::get_default();
