@@ -75,7 +75,7 @@ std::vector<CRecipient> createSparkMintRecipients(const std::vector<spark::Minte
 std::pair<CAmount, std::vector<CSparkMintMeta>> SelectSparkCoins(
         CAmount required,
         bool subtractFeeFromAmount,
-        std::list<CSparkMintMeta> coins,
+        const std::list<CSparkMintMeta>& coins,
         std::size_t mintNum,
         std::size_t utxoNum,
         std::size_t additionalTxSize,
@@ -87,7 +87,7 @@ void createSparkSpendTransaction(
         const spark::IncomingViewKey& incomingViewKey,
         const std::vector<std::pair<CAmount, bool>>& recipients,
         const std::vector<std::pair<spark::OutputCoinData, bool>>& privateRecipients,
-        std::list<CSparkMintMeta> coins,
+        const std::list<CSparkMintMeta>& coins,
         const std::unordered_map<uint64_t, spark::CoverSetData>& cover_set_data_all,
         const std::map<uint64_t, uint256>& idAndBlockHashes_all,
         const uint256& txHashSig,
